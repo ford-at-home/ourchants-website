@@ -11,7 +11,7 @@ export const SongList = () => {
 
   if (isLoading) {
     return (
-      <div className="text-white text-center py-10">
+      <div className="text-spotify-lightgray text-center py-10">
         Loading songs...
       </div>
     );
@@ -19,25 +19,28 @@ export const SongList = () => {
 
   return (
     <div className="w-full max-w-screen-xl mx-auto px-4">
-      <div className="grid grid-cols-1 gap-2">
+      <div className="grid grid-cols-1 gap-1">
         {songs.map((song) => (
           <div
             key={song.id}
-            className="flex items-center gap-4 p-4 rounded-md hover:bg-spotify-darkgray transition-colors group"
+            className="flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-all cursor-pointer group"
           >
-            <div className="relative w-12 h-12 bg-spotify-darkgray rounded flex items-center justify-center group-hover:bg-spotify-green/10">
+            <div className="relative w-12 h-12 bg-spotify-darkgray rounded-md overflow-hidden flex items-center justify-center group-hover:shadow-lg transition-all">
               {song.albumCover ? (
                 <img
                   src={song.albumCover}
                   alt={song.title}
-                  className="w-full h-full rounded object-cover"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <Play className="w-6 h-6 text-spotify-lightgray group-hover:text-spotify-green" />
               )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Play className="w-6 h-6 text-white" />
+              </div>
             </div>
             <div className="flex-1">
-              <h3 className="text-white font-medium">{song.title}</h3>
+              <h3 className="text-white font-medium text-base hover:underline">{song.title}</h3>
               <p className="text-spotify-lightgray text-sm">{song.artist}</p>
             </div>
             <div className="text-spotify-lightgray text-sm">{song.duration}</div>

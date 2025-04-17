@@ -4,11 +4,13 @@ import { SongList } from "@/components/SongList";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-spotify-dark pb-24">
-      <header className="py-6 px-4">
-        <h1 className="text-white text-2xl font-bold text-center">Mellow Tune Hub</h1>
+    <div className="min-h-screen bg-gradient-to-b from-spotify-dark to-black pb-24">
+      <header className="py-6 px-4 bg-black/30">
+        <h1 className="text-white text-3xl font-bold text-center bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
+          Mellow Tune Hub
+        </h1>
       </header>
-      <main>
+      <main className="mt-6">
         <SongList />
       </main>
       <MusicPlayer />
