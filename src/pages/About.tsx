@@ -1,12 +1,12 @@
 
-import { MusicNotes } from "lucide-react";
+import { Music } from "lucide-react";
 
 const About = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-spotify-dark to-black pb-24">
       <div className="max-w-3xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
-          <MusicNotes className="w-16 h-16 mx-auto text-spotify-green mb-6" />
+          <Music className="w-16 h-16 mx-auto text-spotify-green mb-6" />
           <h1 className="text-4xl font-bold text-white mb-6">About Sacred Chants</h1>
           <div className="space-y-6 text-spotify-lightgray">
             <p className="text-lg">
