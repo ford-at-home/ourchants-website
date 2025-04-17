@@ -1,13 +1,34 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { fetchSongs } from "@/services/songApi";
 import { Play } from "lucide-react";
+import { SearchBar } from "./SearchBar";
+import { useState, useMemo } from "react";
 
 export const SongList = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("all");
   const { data: songs = [], isLoading } = useQuery({
     queryKey: ["songs"],
     queryFn: fetchSongs,
   });
+
+  const filteredSongs = useMemo(() => {
+    return songs.filter((song) => {
+      const matchesSearch = 
+        song.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        song.artist.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (filter === "all") return matchesSearch;
+      
+      const genres: Record<string, string[]> = {
+        rock: ["Guns N' Roses"],
+        pop: ["Michael Jackson"],
+        classic: ["Queen", "Eagles"]
+      };
+      
+      return matchesSearch && genres[filter]?.includes(song.artist);
+    });
+  }, [songs, searchTerm, filter]);
 
   if (isLoading) {
     return (
@@ -19,8 +40,9 @@ export const SongList = () => {
 
   return (
     <div className="w-full max-w-screen-xl mx-auto px-4">
+      <SearchBar onSearch={setSearchTerm} onFilterChange={setFilter} />
       <div className="grid grid-cols-1 gap-1">
-        {songs.map((song) => (
+        {filteredSongs.map((song) => (
           <div
             key={song.id}
             className="flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-all cursor-pointer group"

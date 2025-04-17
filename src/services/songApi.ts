@@ -1,4 +1,3 @@
-
 import { Song } from "@/types/song";
 
 const mockSongs: Song[] = [
@@ -29,6 +28,27 @@ const mockSongs: Song[] = [
     artist: "Guns N' Roses",
     duration: "5:56",
     albumCover: "https://upload.wikimedia.org/wikipedia/en/3/3b/Appetitefordestructioncover.jpg"
+  },
+  {
+    id: "5",
+    title: "Beat It",
+    artist: "Michael Jackson",
+    duration: "4:18",
+    albumCover: "https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png"
+  },
+  {
+    id: "6",
+    title: "Paradise City",
+    artist: "Guns N' Roses",
+    duration: "6:46",
+    albumCover: "https://upload.wikimedia.org/wikipedia/en/3/3b/Appetitefordestructioncover.jpg"
+  },
+  {
+    id: "7",
+    title: "We Will Rock You",
+    artist: "Queen",
+    duration: "2:02",
+    albumCover: "https://upload.wikimedia.org/wikipedia/en/4/4d/Queen_A_Night_at_the_Opera.png"
   }
 ];
 
