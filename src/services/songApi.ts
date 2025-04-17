@@ -1,5 +1,23 @@
 import { Song } from "@/types/song";
 
+// Replace this with your actual API Gateway endpoint
+const API_ENDPOINT = "https://your-api-gateway-endpoint.execute-api.region.amazonaws.com/stage";
+
+export const fetchSongs = async (): Promise<Song[]> => {
+  try {
+    const response = await fetch(`${API_ENDPOINT}/songs`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch songs');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching songs:', error);
+    // Return mock data as fallback for now
+    return mockSongs;
+  }
+};
+
+// Keep mock data for fallback
 const mockSongs: Song[] = [
   {
     id: "1",
@@ -51,9 +69,3 @@ const mockSongs: Song[] = [
     albumCover: "https://upload.wikimedia.org/wikipedia/en/4/4d/Queen_A_Night_at_the_Opera.png"
   }
 ];
-
-export const fetchSongs = async (): Promise<Song[]> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockSongs;
-};
