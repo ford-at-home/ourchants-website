@@ -1,0 +1,13 @@
+"""
+Development dependencies for the OurChants frontend infrastructure CDK project.
+
+This file lists additional Python packages needed for development:
+- pytest: Testing framework
+- pytest-cov: Coverage reporting for tests
+
+These packages are not required for deployment but are used during development
+and testing.
+"""
+
+pytest>=7.0.0
+pytest-cov>=4.0.0

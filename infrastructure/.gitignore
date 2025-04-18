@@ -1,0 +1,21 @@
+"""
+Git ignore rules for the OurChants frontend infrastructure project.
+
+This file specifies which files and directories should be ignored by Git:
+- CDK synthesis outputs
+- Python virtual environment
+- IDE-specific files
+- Temporary files
+- Build artifacts
+"""
+
+*.swp
+package-lock.json
+__pycache__
+.pytest_cache
+.venv
+*.egg-info
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out

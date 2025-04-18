@@ -1,0 +1,6 @@
+{
+  "AllowOrigins": ["http://sacred-chants-static-website-1745009593.s3-website-us-east-1.amazonaws.com"],
+  "AllowMethods": ["GET", "POST", "PUT", "DELETE"],
+  "AllowHeaders": ["Content-Type", "Accept"],
+  "MaxAge": 3000
+}

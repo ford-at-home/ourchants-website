@@ -1,0 +1,17 @@
+"""
+Python dependencies for the OurChants frontend infrastructure CDK project.
+
+This file lists the required Python packages for deploying the CDK stack:
+- aws-cdk-lib: Core CDK library
+- constructs: CDK constructs library
+- boto3: AWS SDK for Python (used by generate_song_api.py)
+- python-dotenv: Environment variable management
+
+Note: The versions should be kept in sync with the CDK CLI version to ensure
+compatibility.
+"""
+
+aws-cdk-lib>=2.0.0
+constructs>=10.0.0
+boto3>=1.34.0
+python-dotenv>=1.0.0
