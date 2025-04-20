@@ -6,26 +6,27 @@ set -e
 echo "Starting OurChants deployment..."
 echo "--------------------------------"
 
-# Deploy the CDK stack
-echo "Deploying CDK stack..."
-cd infrastructure
-cdk deploy --app "python3 app.py"
+# Get the API endpoint from the existing ApiStack
+echo "Fetching API endpoint from existing ApiStack..."
+API_ENDPOINT=$(aws cloudformation describe-stacks \
+  --stack-name "ApiStack" \
+  --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+  --output text)
 
-# Get the API endpoint from .env file
-echo "Fetching API endpoint from .env file..."
-API_ENDPOINT=$(grep API_ENDPOINT .env | cut -d '=' -f2)
+# Remove trailing slash if present
+API_ENDPOINT=${API_ENDPOINT%/}
 
 if [ -z "$API_ENDPOINT" ]; then
-  echo "Error: Could not fetch API endpoint from .env file"
+  echo "Error: Could not fetch API endpoint from stack output"
+  echo "Available outputs:"
+  aws cloudformation describe-stacks --stack-name "ApiStack" --query "Stacks[0].Outputs" --output table
   exit 1
 fi
 
 echo "Found API endpoint: $API_ENDPOINT"
 
-# Extract the API Gateway ID from the endpoint URL
-API_ID=$(echo $API_ENDPOINT | sed 's|https://||' | sed 's|.execute-api.*||')
-
-echo "Using API Gateway ID: $API_ID"
+# Store the API endpoint in .env file
+echo "API_ENDPOINT=$API_ENDPOINT" > .env
 
 # Get the project root directory
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
@@ -52,6 +53,31 @@ export const fetchSongs = async (): Promise<Song[]> => {
     return await response.json();
   } catch (error) {
     console.error('Error fetching songs:', error);
+    throw error;
+  }
+};
+
+interface GetPresignedUrlResponse {
+  url: string;
+  expiresIn: number;
+}
+
+export const getPresignedUrl = async (bucket: string, key: string): Promise<GetPresignedUrlResponse> => {
+  try {
+    const response = await fetch(\`\${API_ENDPOINT}/presigned-url\`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ bucket, key })
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get presigned URL');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting presigned URL:', error);
     throw error;
   }
 };
@@ -84,23 +110,43 @@ aws s3 sync "$PROJECT_ROOT/dist/" "s3://$BUCKET_NAME" --delete
 # Get the S3 website URL
 WEBSITE_URL="http://$BUCKET_NAME.s3-website-us-east-1.amazonaws.com"
 
-# Enable CORS for the API
-echo "Enabling CORS for API Gateway..."
-aws apigateway update-rest-api \
-  --rest-api-id "$API_ID" \
-  --patch-operations \
-    op=replace,path=/cors/enabled,value=true \
-    op=replace,path=/cors/allowOrigins,value="$WEBSITE_URL" \
-    op=replace,path=/cors/allowMethods,value="GET,POST,PUT,DELETE" \
-    op=replace,path=/cors/allowHeaders,value="Content-Type,Accept" \
-    op=replace,path=/cors/maxAge,value="3000"
+# Get the API Gateway ID
+echo "Fetching API Gateway ID..."
+API_ID=$(aws apigatewayv2 get-apis --query "Items[?Name=='SongsHttpApi'].ApiId" --output text)
+
+if [ -z "$API_ID" ]; then
+  echo "Error: Could not find API Gateway with name 'SongsHttpApi'"
+  echo "Available APIs:"
+  aws apigatewayv2 get-apis --query "Items[*].[Name,ApiId]" --output table
+  exit 1
+fi
+
+echo "Found API Gateway ID: $API_ID"
+
+# Create a temporary file for the CORS configuration
+cat > cors-config.json << EOF
+{
+  "AllowOrigins": ["$WEBSITE_URL"],
+  "AllowMethods": ["GET", "POST", "PUT", "DELETE"],
+  "AllowHeaders": ["Content-Type", "Accept"],
+  "MaxAge": 3000
+}
+EOF
+
+# Configure CORS for the API
+echo "Configuring CORS for API Gateway..."
+aws apigatewayv2 update-api \
+  --api-id "$API_ID" \
+  --cors-configuration file://cors-config.json
 
 # Create a new deployment
-DEPLOYMENT_ID=$(aws apigateway create-deployment \
-  --rest-api-id "$API_ID" \
-  --stage-name "prod" \
-  --query "id" \
+DEPLOYMENT_ID=$(aws apigatewayv2 create-deployment \
+  --api-id "$API_ID" \
+  --query "DeploymentId" \
   --output text)
+
+# Clean up
+rm cors-config.json
 
 echo "--------------------------------"
 echo "Deployment complete!"

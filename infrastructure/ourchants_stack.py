@@ -83,7 +83,7 @@ class OurChantsStack(Stack):
         song_api_content = f'''import {{ Song }} from "@/types/song";
 
 // API Configuration
-const API_BASE_URL = "{api_endpoint}";
+const API_BASE_URL = "{api_endpoint.rstrip('/')}";
 
 interface ApiError {{
   error: string;

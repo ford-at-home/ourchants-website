@@ -1,7 +1,7 @@
 import { Song } from "@/types/song";
 
 // API Configuration
-const API_BASE_URL = "https://r2now7lom5.execute-api.us-east-1.amazonaws.com/prod/";
+const API_BASE_URL = "https://9dl6yhg7r8.execute-api.us-east-1.amazonaws.com";
 
 interface ApiError {
   error: string;
