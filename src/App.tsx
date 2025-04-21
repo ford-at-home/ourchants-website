@@ -12,7 +12,10 @@ import { ResumeDialog } from './components/ResumeDialog';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from './services/songApi';
 import { getSongFromUrl } from './utils/urlParams';
-import { Routes, Route, useLocation, BrowserRouter } from 'react-router-dom';
+import { Routes, Route, useLocation, BrowserRouter, Link } from 'react-router-dom';
+import { Home, Info, ClipboardList, BookOpen } from 'lucide-react';
+import BlogList from './components/BlogList';
+import BlogPost from './components/BlogPost';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
@@ -104,14 +107,43 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background text-foreground">
-        <header className="bg-spotify-darkgray text-white p-4">
-          <h1 className="text-2xl font-bold">OurChants</h1>
+        <header className="bg-spotify-darkgray text-white">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold">OurChants</h1>
+              <nav className="flex space-x-8">
+                <Link to="/" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
+                  <Home className="w-5 h-5" />
+                  <span>Home</span>
+                </Link>
+                <Link to="/blog" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
+                  <BookOpen className="w-5 h-5" />
+                  <span>Blog</span>
+                </Link>
+                <Link to="/about" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
+                  <Info className="w-5 h-5" />
+                  <span>About</span>
+                </Link>
+                <a 
+                  href="/survey.html" 
+                  className="flex items-center space-x-2 hover:text-spotify-green transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ClipboardList className="w-5 h-5" />
+                  <span>Survey</span>
+                </a>
+              </nav>
+            </div>
+          </div>
         </header>
         <main className="relative">
           <Routes>
             <Route path="/" element={<SongList />} />
             <Route path="/song/:id" element={<SongDetails />} />
             <Route path="/about" element={<About />} />
+            <Route path="/blog" element={<BlogList />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
           </Routes>
         </main>
         {showResumeDialog && resumeSong && (
