@@ -1,18 +1,18 @@
 # OurChants
 
-A platform for preserving and sharing sacred indigenous chants from various cultures.
+A platform for making it easy to learn and share circle songs, joining hearts and raising our vibration for a healthier, more compassionate, loving, thriving planet Earth.
 
 ## Project Overview
 
-OurChants is a web application dedicated to preserving and sharing sacred indigenous chants while maintaining their cultural significance and authenticity. The platform provides a respectful and accessible way to experience these cultural treasures.
+OurChants is a web application dedicated to preserving and sharing sacred songs. Our song forest is open for browsing, providing a respectful and accessible way to experience these cultural treasures.
 
 ## Features
 
-- Browse and search sacred chants
+- Browse and search songs
 - Play audio recordings with a Spotify-inspired interface
-- View detailed information about each chant
-- Learn about the cultural significance and history
+- View detailed information about each song
 - Responsive design for all devices
+- Blog section for updates and community engagement
 
 ## Tech Stack
 
@@ -26,7 +26,7 @@ OurChants is a web application dedicated to preserving and sharing sacred indige
   - AWS API Gateway
   - AWS Lambda
   - DynamoDB
-  - S3
+  - S3 for static hosting
 
 ## Getting Started
 
@@ -34,6 +34,7 @@ OurChants is a web application dedicated to preserving and sharing sacred indige
 
 - Node.js (v18 or higher)
 - npm or yarn
+- AWS CLI configured with appropriate credentials
 
 ### Installation
 
@@ -45,7 +46,7 @@ cd ourchants-app
 
 2. Install dependencies:
 ```bash
-npm install
+make install
 ```
 
 3. Create a `.env` file in the root directory with the following variables:
@@ -55,7 +56,21 @@ VITE_API_URL=your_api_url
 
 4. Start the development server:
 ```bash
-npm run dev
+make dev
+```
+
+## Available Commands
+
+We use Make for common operations. Here are the available commands:
+
+```bash
+make install     # Install dependencies
+make dev        # Start development server
+make build      # Build the project
+make lint       # Run linter
+make deploy     # Build and deploy to S3
+make setup-infra # Set up AWS infrastructure
+make clean      # Clean build files and dependencies
 ```
 
 ## Project Structure
@@ -67,7 +82,8 @@ ourchants-app/
 │   ├── contexts/       # React contexts
 │   ├── services/       # API services
 │   ├── utils/          # Utility functions
-│   └── pages/          # Page components
+│   ├── pages/          # Page components
+│   └── content/        # Blog posts and static content
 ├── infrastructure/     # AWS CDK infrastructure
 ├── public/            # Static assets
 └── dist/              # Build output
