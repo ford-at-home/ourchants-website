@@ -129,6 +129,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     prevS3UriRef.current = s3Uri;
     setLoadingState('loading');
     setError(null);
+    setCurrentTime(0); // Reset current time when song changes
 
     const setupAudio = async () => {
       try {
@@ -137,6 +138,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         
         if (audioRef.current) {
           audioRef.current.src = response.url;
+          audioRef.current.currentTime = 0; // Ensure audio starts from beginning
           setAudioUrl(response.url);
           setLoadingState('ready');
           
@@ -344,6 +346,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             onValueChange={handleTimeChange}
             className="flex-1"
             disabled={!s3Uri || isLoading || !!error || loadingState !== 'ready'}
+            aria-label="Progress"
           />
           <span className="text-sm text-spotify-lightgray">{formatTime(duration)}</span>
         </div>
@@ -397,6 +400,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 }
               }}
               disabled={!s3Uri || isLoading || !!error || loadingState !== 'ready'}
+              aria-label={playerState === 'playing' ? 'Pause' : 'Play'}
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -431,6 +435,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               onValueChange={handleVolumeChange}
               className="w-24"
               disabled={isLoading || !!error}
+              aria-label="Volume"
             />
           </div>
         </div>

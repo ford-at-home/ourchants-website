@@ -1,7 +1,7 @@
 import { Song } from "@/types/song";
 
 // API Gateway endpoint from CloudFormation stack
-const API_ENDPOINT = "https://hezyeh6kgj.execute-api.us-east-1.amazonaws.com";
+const API_ENDPOINT = "API_ENDPOINT_PLACEHOLDER";
 
 export const getPresignedUrl = async (bucket: string, key: string): Promise<{ url: string }> => {
   try {

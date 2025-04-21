@@ -4,23 +4,84 @@ import { parseMarkdown, BlogPost } from '../utils/markdown';
 
 const BlogList = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPosts = async () => {
-      const modules = import.meta.glob('../content/blog/*.md', { as: 'raw' });
-      const posts = await Promise.all(
-        Object.entries(modules).map(async ([path, getContent]) => {
-          const content = await getContent();
-          const post = parseMarkdown(content);
-          const slug = path.split('/').pop()?.replace('.md', '') || '';
-          return { ...post, slug };
-        })
-      );
-      setPosts(posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const modules = import.meta.glob('../content/blog/*.md', { as: 'raw' });
+        const posts = await Promise.all(
+          Object.entries(modules).map(async ([path, getContent]) => {
+            try {
+              const content = await getContent();
+              const post = parseMarkdown(content);
+              const slug = path.split('/').pop()?.replace('.md', '') || '';
+              return { ...post, slug };
+            } catch (err) {
+              console.error(`Error loading post from ${path}:`, err);
+              return null;
+            }
+          })
+        );
+        
+        const validPosts = posts.filter((post): post is BlogPost & { slug: string } => post !== null);
+        setPosts(validPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      } catch (err) {
+        console.error('Error loading blog posts:', err);
+        setError('Failed to load blog posts. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadPosts();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Blog</h1>
+        <div className="flex items-center justify-center min-h-[200px]">
+          <div className="text-spotify-lightgray text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-spotify-green mx-auto mb-4"></div>
+            <p>Loading blog posts...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Blog</h1>
+        <div className="text-red-500 text-center py-10">
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-spotify-green text-white rounded-full"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Blog</h1>
+        <div className="text-spotify-lightgray text-center py-10">
+          No blog posts available.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

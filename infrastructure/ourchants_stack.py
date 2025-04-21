@@ -3,6 +3,8 @@ CDK Stack for the OurChants frontend infrastructure.
 
 This stack creates the necessary AWS resources for hosting the OurChants static website:
 - S3 bucket for static website hosting
+- CloudFront distribution for global content delivery
+- WAF for basic protection
 - Generates the TypeScript API client (songApi.ts) with the correct API endpoint
 
 The stack is designed to work with the existing deployed stacks:
@@ -14,6 +16,8 @@ from aws_cdk import (
     Stack,
     aws_s3 as s3,
     aws_cloudfront as cloudfront,
+    aws_cloudfront_origins as cloudfront_origins,
+    aws_wafv2 as wafv2,
     aws_route53 as route53,
     aws_route53_targets as targets,
     RemovalPolicy,
@@ -77,6 +81,106 @@ class OurChantsStack(Stack):
             allowed_origins=["*"],
             allowed_headers=["*"],
             max_age=3000
+        )
+
+        # Create WAF WebACL
+        web_acl = wafv2.CfnWebACL(
+            self,
+            "WebsiteWafAcl",
+            default_action=wafv2.CfnWebACL.DefaultActionProperty(
+                allow=wafv2.CfnWebACL.AllowActionProperty()
+            ),
+            scope="CLOUDFRONT",
+            visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
+                cloud_watch_metrics_enabled=True,
+                metric_name="WebsiteWafAcl",
+                sampled_requests_enabled=True
+            ),
+            rules=[
+                wafv2.CfnWebACL.RuleProperty(
+                    name="AWS-AWSManagedRulesCommonRuleSet",
+                    priority=0,
+                    statement=wafv2.CfnWebACL.StatementProperty(
+                        managed_rule_group_statement=wafv2.CfnWebACL.ManagedRuleGroupStatementProperty(
+                            name="AWSManagedRulesCommonRuleSet",
+                            vendor_name="AWS"
+                        )
+                    ),
+                    visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
+                        cloud_watch_metrics_enabled=True,
+                        metric_name="AWSManagedRulesCommonRuleSet",
+                        sampled_requests_enabled=True
+                    ),
+                    override_action=wafv2.CfnWebACL.OverrideActionProperty(
+                        none={}
+                    )
+                ),
+                wafv2.CfnWebACL.RuleProperty(
+                    name="AWS-AWSManagedRulesKnownBadInputsRuleSet",
+                    priority=1,
+                    statement=wafv2.CfnWebACL.StatementProperty(
+                        managed_rule_group_statement=wafv2.CfnWebACL.ManagedRuleGroupStatementProperty(
+                            name="AWSManagedRulesKnownBadInputsRuleSet",
+                            vendor_name="AWS"
+                        )
+                    ),
+                    visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
+                        cloud_watch_metrics_enabled=True,
+                        metric_name="AWSManagedRulesKnownBadInputsRuleSet",
+                        sampled_requests_enabled=True
+                    ),
+                    override_action=wafv2.CfnWebACL.OverrideActionProperty(
+                        none={}
+                    )
+                ),
+                wafv2.CfnWebACL.RuleProperty(
+                    name="RateLimit",
+                    priority=2,
+                    action=wafv2.CfnWebACL.RuleActionProperty(
+                        block=wafv2.CfnWebACL.BlockActionProperty()
+                    ),
+                    statement=wafv2.CfnWebACL.StatementProperty(
+                        rate_based_statement=wafv2.CfnWebACL.RateBasedStatementProperty(
+                            limit=1000,
+                            aggregate_key_type="IP"
+                        )
+                    ),
+                    visibility_config=wafv2.CfnWebACL.VisibilityConfigProperty(
+                        cloud_watch_metrics_enabled=True,
+                        metric_name="RateLimit",
+                        sampled_requests_enabled=True
+                    )
+                )
+            ]
+        )
+
+        # Create CloudFront distribution
+        distribution = cloudfront.Distribution(
+            self,
+            "WebsiteDistribution",
+            web_acl_id=web_acl.attr_arn,
+            default_behavior=cloudfront.BehaviorOptions(
+                origin=cloudfront_origins.HttpOrigin(
+                    domain_name=bucket.bucket_website_domain_name,
+                    protocol_policy=cloudfront.OriginProtocolPolicy.HTTP_ONLY
+                ),
+                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                allowed_methods=cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+                cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
+                origin_request_policy=cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN
+            ),
+            error_responses=[
+                cloudfront.ErrorResponse(
+                    http_status=403,
+                    response_http_status=200,
+                    response_page_path="/index.html"
+                ),
+                cloudfront.ErrorResponse(
+                    http_status=404,
+                    response_http_status=200,
+                    response_page_path="/index.html"
+                )
+            ]
         )
 
         # Generate songApi.ts file with full API implementation
@@ -182,7 +286,7 @@ export const updateSongWithRetry = async (
         CfnOutput(
             self,
             "WebsiteURL",
-            value=f"http://{bucket.bucket_website_domain_name}",
+            value=f"https://{distribution.distribution_domain_name}",
             description="URL of the website"
         )
 

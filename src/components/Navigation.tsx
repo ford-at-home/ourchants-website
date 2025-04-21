@@ -8,7 +8,7 @@ const Navigation: React.FC = () => {
       <div className="container mx-auto flex justify-center space-x-8">
         <Link to="/" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
           <Home className="w-5 h-5" />
-          <span>Home</span>
+          <span>Songs</span>
         </Link>
         <Link to="/about" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
           <Info className="w-5 h-5" />

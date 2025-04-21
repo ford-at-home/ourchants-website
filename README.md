@@ -51,7 +51,7 @@ make install
 
 3. Create a `.env` file in the root directory with the following variables:
 ```
-VITE_API_URL=your_api_url
+API_ENDPOINT=your_api_url
 ```
 
 4. Start the development server:
@@ -63,15 +63,70 @@ make dev
 
 We use Make for common operations. Here are the available commands:
 
+### Development
 ```bash
 make install     # Install dependencies
 make dev        # Start development server
 make build      # Build the project
 make lint       # Run linter
-make deploy     # Build and deploy to S3
+```
+
+### Testing
+```bash
+make test       # Run unit tests
+make test-build # Verify build
+make test-all   # Run all tests (unit + build verification)
+```
+
+### Deployment
+```bash
+make setup-env  # Set up environment variables
+make update-api # Update API configuration
+make deploy-s3  # Deploy to S3
+make configure-cors # Configure CORS for API Gateway
+make deploy     # Full deployment (test + deploy)
+make deploy-prod # Production deployment (includes CORS)
+make boom      # Complete deployment process
+```
+
+### Infrastructure
+```bash
 make setup-infra # Set up AWS infrastructure
 make clean      # Clean build files and dependencies
 ```
+
+## Deployment Process
+
+The deployment process is broken down into stages that can be run independently or as part of a complete deployment:
+
+1. **Environment Setup** (`make setup-env`)
+   - Verifies and sets up environment variables
+   - Ensures API endpoint is configured
+
+2. **API Configuration** (`make update-api`)
+   - Updates the API client with the correct endpoint
+   - Configures API request headers and methods
+
+3. **Build and Test** (`make test-all`)
+   - Runs unit tests
+   - Verifies the build
+   - Ensures code quality
+
+4. **S3 Deployment** (`make deploy-s3`)
+   - Builds the application
+   - Syncs files to S3 bucket
+   - Configures static website hosting
+
+5. **CORS Configuration** (`make configure-cors`)
+   - Configures API Gateway CORS settings
+   - Updates deployment
+   - Ensures frontend can communicate with API
+
+### Complete Deployment Options
+
+- `make deploy` - Basic deployment (tests + API update + S3)
+- `make deploy-prod` - Production deployment (includes CORS configuration)
+- `make boom` - Complete deployment (everything)
 
 ## Project Structure
 
@@ -85,6 +140,8 @@ ourchants-app/
 │   ├── pages/          # Page components
 │   └── content/        # Blog posts and static content
 ├── infrastructure/     # AWS CDK infrastructure
+│   ├── deploy.sh      # Main infrastructure deployment script
+│   └── lambda/        # Lambda function code
 ├── public/            # Static assets
 └── dist/              # Build output
 ```
@@ -104,4 +161,4 @@ ourchants-app/
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
