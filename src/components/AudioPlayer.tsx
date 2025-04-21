@@ -1,29 +1,39 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Loader2 } from "lucide-react";
+import React, { useEffect, useRef, useState } from 'react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Loader2, RotateCcw, Share2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { getPresignedUrl } from "../services/songApi";
+import { saveResumeState } from "../utils/resumeState";
+import { Spinner } from './ui/spinner';
+import { createSongUrl } from '../utils/urlParams';
+import { toast } from 'sonner';
 
 interface AudioPlayerProps {
   s3Uri: string;
   title?: string;
   artist?: string;
-  onPlay: () => void;
-  onPause: () => void;
+  songId?: string;
+  onPlay?: () => void;
+  onPause?: () => void;
   shouldPlay?: boolean;
   onPlayStarted?: () => void;
+  initialTimestamp?: number;
 }
+
+type PlayerState = 'idle' | 'loading' | 'buffering' | 'playing' | 'error';
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
   s3Uri, 
-  title, 
-  artist, 
+  title = 'Unknown Title',
+  artist = 'Unknown Artist',
+  songId,
   onPlay, 
   onPause, 
   shouldPlay = false,
   onPlayStarted,
+  initialTimestamp
 }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -33,6 +43,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [loadingState, setLoadingState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const prevS3UriRef = useRef<string | null>(null);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   // Initialize audio element only once
   useEffect(() => {
@@ -55,8 +68,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
+      setPlayerState('idle');
+      onPause?.();
     };
 
     const handleCanPlay = () => {
@@ -127,49 +140,69 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setAudioUrl(response.url);
           setLoadingState('ready');
           
-          if (shouldPlay) {
-            try {
-              await audioRef.current.play();
-              setIsPlaying(true);
-            } catch (err) {
-              console.error('Failed to start playback:', err);
-              setError('Failed to start playback');
-            }
+          // Set initial timestamp if provided
+          if (initialTimestamp) {
+            audioRef.current.currentTime = initialTimestamp;
           }
         }
       } catch (err) {
         console.error('Error setting up audio:', err);
         setError('Failed to load audio');
         setLoadingState('error');
+        setPlayerState('error');
       }
     };
 
     setupAudio();
-  }, [s3Uri, shouldPlay]);
+  }, [s3Uri, initialTimestamp]);
 
   // Handle play/pause state changes
   useEffect(() => {
     if (!audioRef.current || !audioUrl) return;
 
     const handlePlayState = async () => {
-      if (shouldPlay && !isPlaying) {
+      // Never try to autoplay when loading from a URL
+      const isFromUrl = window.location.search.includes('song=');
+      if (isFromUrl) {
+        return;
+      }
+
+      if (shouldPlay && playerState !== 'playing') {
         try {
           await audioRef.current!.play();
-          setIsPlaying(true);
-          onPlay();
+          setPlayerState('playing');
+          onPlay?.();
         } catch (err) {
           console.error('Play failed:', err);
+          if (err instanceof Error && err.name === 'NotAllowedError') {
+            // Don't show error for autoplay restrictions
+            return;
+          }
           setError('Playback failed');
+          setPlayerState('error');
         }
-      } else if (!shouldPlay && isPlaying) {
+      } else if (!shouldPlay && playerState === 'playing') {
         audioRef.current!.pause();
-        setIsPlaying(false);
-        onPause();
+        setPlayerState('idle');
+        onPause?.();
       }
     };
 
     handlePlayState();
-  }, [shouldPlay, audioUrl, isPlaying, onPlay, onPause]);
+  }, [shouldPlay, audioUrl, playerState, onPlay, onPause]);
+
+  // Save resume state every 5 seconds when playing
+  useEffect(() => {
+    if (!playerState || !songId || !audioRef.current) return;
+
+    const interval = setInterval(() => {
+      if (audioRef.current) {
+        saveResumeState(songId, audioRef.current.currentTime);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [playerState, songId]);
 
   const handleTimeChange = (value: number[]) => {
     if (!audioRef.current) return;
@@ -206,6 +239,77 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   };
 
+  const handleRetry = () => {
+    if (retryCount >= MAX_RETRIES) {
+      setError('Maximum retry attempts reached. Please try again later.');
+      return;
+    }
+    setRetryCount(prev => prev + 1);
+    setError(null);
+    // Re-initialize audio
+    const event = new Event('retry');
+    window.dispatchEvent(event);
+  };
+
+  const copyToClipboard = (text: string) => {
+    // Try modern clipboard API first
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text)
+        .then(() => true)
+        .catch(() => false);
+    }
+    
+    // Fallback for non-secure contexts
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '0';
+      textArea.style.top = '0';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return Promise.resolve(successful);
+    } catch (err) {
+      return Promise.resolve(false);
+    }
+  };
+
+  const handleShare = () => {
+    if (!songId) return;
+    
+    const url = createSongUrl(songId, currentTime);
+    copyToClipboard(url)
+      .then(success => {
+        if (success) {
+          toast.success('Link copied to clipboard!');
+        } else {
+          toast.error('Failed to copy link. Please try manually.');
+        }
+      });
+  };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-between p-4 bg-spotify-darkgray rounded-lg">
+        <div className="flex-1">
+          <p className="text-red-500">{error}</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleRetry}
+          className="text-spotify-green hover:text-spotify-green/80"
+        >
+          <RotateCcw className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-spotify-darkgray p-4">
       <div className="max-w-4xl mx-auto flex flex-col gap-4">
@@ -213,10 +317,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <p className="text-white font-medium truncate">{getLoadingText()}</p>
-            {artist && loadingState === 'ready' && (
+            {artist && playerState !== 'error' && (
               <p className="text-spotify-lightgray text-sm truncate">{artist}</p>
             )}
           </div>
+          {songId && playerState !== 'error' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleShare}
+              className="text-spotify-lightgray hover:text-white"
+              title="Share song"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
+          )}
         </div>
 
         {/* Progress Bar */}
@@ -253,33 +368,39 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               variant="ghost"
               size="icon"
               className="bg-white text-black hover:scale-105 transition-transform"
-              onClick={() => {
+              onClick={async () => {
                 if (!audioRef.current) {
                   console.error('Audio ref is null');
                   return;
                 }
-                if (isPlaying) {
-                  console.log('Pausing audio');
-                  audioRef.current.pause();
-                  setIsPlaying(false);
-                  onPause();
-                } else {
-                  console.log('Playing audio');
-                  audioRef.current.play().then(() => {
+                try {
+                  if (playerState === 'playing') {
+                    console.log('Pausing audio');
+                    audioRef.current.pause();
+                    setPlayerState('idle');
+                    onPause?.();
+                  } else {
+                    console.log('Playing audio');
+                    await audioRef.current.play();
                     console.log('Audio play successful');
-                    setIsPlaying(true);
-                    onPlay();
-                  }).catch(err => {
-                    console.error('Error starting playback:', err);
+                    setPlayerState('playing');
+                    onPlay?.();
+                  }
+                } catch (err) {
+                  console.error('Error starting playback:', err);
+                  if (err instanceof Error && err.name === 'NotAllowedError') {
+                    toast.error('Please click the play button to start playback');
+                  } else {
                     setError('Error starting playback. Please try again.');
-                  });
+                    setPlayerState('error');
+                  }
                 }
               }}
               disabled={!s3Uri || isLoading || !!error || loadingState !== 'ready'}
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
-              ) : isPlaying ? (
+              ) : playerState === 'playing' ? (
                 <Pause className="h-5 w-5" />
               ) : (
                 <Play className="h-5 w-5" />
@@ -313,13 +434,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             />
           </div>
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="text-red-500 text-sm mt-2">
-            {error}
-          </div>
-        )}
       </div>
     </div>
   );

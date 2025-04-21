@@ -133,13 +133,13 @@ cat > cors-config.json << EOF
 }
 EOF
 
-# Configure CORS for the API
+# Configure CORS for the API (suppress output)
 echo "Configuring CORS for API Gateway..."
 aws apigatewayv2 update-api \
   --api-id "$API_ID" \
-  --cors-configuration file://cors-config.json
+  --cors-configuration file://cors-config.json > /dev/null 2>&1
 
-# Create a new deployment
+# Create a new deployment (suppress output)
 DEPLOYMENT_ID=$(aws apigatewayv2 create-deployment \
   --api-id "$API_ID" \
   --query "DeploymentId" \
@@ -150,5 +150,4 @@ rm cors-config.json
 
 echo "--------------------------------"
 echo "Deployment complete!"
-echo "Your website is available at: $WEBSITE_URL"
-echo "API Gateway CORS configured to accept requests from: $WEBSITE_URL" 
+echo "Your website is available at: $WEBSITE_URL" 
