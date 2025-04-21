@@ -11,127 +11,206 @@ This file contains:
 It serves as the primary documentation for developers working on the infrastructure.
 """
 
-# OurChants Frontend Infrastructure
+# OurChants Infrastructure
 
-This project contains the AWS CDK infrastructure code for deploying the OurChants frontend application.
+This document outlines the AWS infrastructure setup for the OurChants application.
 
 ## Overview
 
 The infrastructure consists of:
 - S3 bucket for static website hosting
 - CloudFront distribution for content delivery
-- Route53 record for custom domain
-- TypeScript API client generation
-- Environment-specific configuration
+- Route53 for DNS management
+- API Gateway for REST API
+- Lambda functions for backend logic
+- DynamoDB for data storage
+- Cognito for authentication
+
+## Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│  CloudFront     │────▶│  S3 Bucket      │────▶│  Static Files   │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │
+        │
+        ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│  API Gateway    │────▶│  Lambda         │────▶│  DynamoDB       │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │
+        │
+        ▼
+┌─────────────────┐
+│                 │
+│  Cognito        │
+│                 │
+└─────────────────┘
+```
 
 ## Prerequisites
 
 - AWS CLI configured with appropriate credentials
-- Node.js and npm installed
-- Python 3.8+ installed
+- Node.js v18 or higher
 - CDK CLI installed (`npm install -g aws-cdk`)
+- Python 3.8+ (for Lambda functions)
 
 ## Setup
 
-1. Create a Python virtual environment:
+1. Install dependencies:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+npm install
 ```
 
-2. Install dependencies:
+2. Configure AWS credentials:
 ```bash
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
+aws configure
 ```
 
-## Development
-
-### Local Development
-
-1. Start the development server:
+3. Bootstrap CDK (first time only):
 ```bash
-cdk synth
+cdk bootstrap
 ```
 
-2. Deploy to a development environment:
+## Deployment
+
+### Development Environment
 ```bash
 cdk deploy --context env=dev
 ```
 
-### Environment Configuration
-
-The stack supports multiple environments (dev, staging, prod). Configure the environment using the `--context` flag:
-
-```bash
-cdk deploy --context env=staging
-```
-
-Environment-specific settings are stored in SSM Parameter Store under `/ourchants/{env}/`.
-
-## Deployment
-
-### Manual Deployment
-
-1. Deploy to production:
+### Production Environment
 ```bash
 cdk deploy --context env=prod
 ```
 
-### CI/CD Integration
+## Environment Configuration
 
-The infrastructure is designed to be deployed through CI/CD pipelines. Environment variables and context are automatically configured based on the deployment environment.
+Environment-specific settings are stored in SSM Parameter Store under `/ourchants/{env}/`:
 
-## API Integration
+- `API_URL`: The API Gateway endpoint
+- `COGNITO_USER_POOL_ID`: Cognito user pool ID
+- `COGNITO_CLIENT_ID`: Cognito client ID
+- `S3_BUCKET_NAME`: S3 bucket name for static files
+- `DYNAMODB_TABLE_NAME`: DynamoDB table name
 
-The stack generates a TypeScript API client (`songApi.ts`) that provides type-safe access to the OurChants API. The API endpoint is configurable through the `ApiEndpoint` parameter.
+## Infrastructure Components
+
+### 1. Frontend Hosting
+- S3 bucket configured for static website hosting
+- CloudFront distribution with:
+  - SSL/TLS encryption
+  - Compression
+  - Cache behaviors
+  - Error pages
+  - WAF rules
+
+### 2. API Layer
+- API Gateway with:
+  - REST API
+  - CORS configuration
+  - Rate limiting
+  - Request validation
+  - Authentication
+
+### 3. Backend Services
+- Lambda functions for:
+  - Song management
+  - File uploads
+  - Authentication
+  - Data processing
+
+### 4. Data Storage
+- DynamoDB table with:
+  - Partition key: `song_id`
+  - Sort key: `created_at`
+  - GSI for queries
+  - TTL for data expiration
+
+### 5. Authentication
+- Cognito user pool with:
+  - Email verification
+  - Password policies
+  - MFA support
+  - Social login
+
+## Monitoring and Logging
+
+### CloudWatch
+- Log groups for Lambda functions
+- Metrics for API Gateway
+- Alarms for errors and throttling
+
+### X-Ray
+- Request tracing
+- Service map
+- Performance insights
+
+## Security
+
+### IAM Policies
+- Least privilege access
+- Role-based access control
+- Service-specific permissions
+
+### Network Security
+- VPC configuration
+- Security groups
+- Network ACLs
+
+### Data Protection
+- Encryption at rest
+- Encryption in transit
+- Key management
+
+## Maintenance
+
+### Backup
+- Daily DynamoDB backups
+- S3 versioning
+- Cross-region replication
+
+### Updates
+- CDK pipeline for updates
+- Canary deployments
+- Rollback procedures
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Deployment Failures**
-   - Check CloudFormation logs in the AWS Console
+   - Check CloudFormation logs
    - Verify IAM permissions
-   - Ensure all required parameters are provided
+   - Validate resource limits
 
-2. **API Client Generation**
-   - Verify the API endpoint is correct
-   - Check TypeScript compilation errors
-   - Ensure all required types are defined
+2. **API Errors**
+   - Check Lambda logs
+   - Verify API Gateway configuration
+   - Test authentication flow
 
-### Getting Help
+3. **Performance Issues**
+   - Monitor CloudWatch metrics
+   - Check cache hit ratios
+   - Review Lambda cold starts
 
-For infrastructure-related issues, contact the DevOps team or create an issue in the repository.
+## Support
 
-## Security
+For infrastructure support:
+1. Check CloudWatch logs
+2. Review deployment history
+3. Contact AWS support if needed
 
-- All resources are created with least-privilege IAM policies
-- Environment-specific secrets are stored in SSM Parameter Store
-- CloudFront distributions use HTTPS only
-- S3 buckets have appropriate bucket policies
+## Cost Optimization
 
-## Maintenance
-
-### Updating Dependencies
-
-1. Update Python dependencies:
-```bash
-pip install -U -r requirements.txt
-pip install -U -r requirements-dev.txt
-```
-
-2. Update Node.js dependencies:
-```bash
-npm update
-```
-
-### Infrastructure Changes
-
-1. Make changes to the CDK stack
-2. Test changes in development environment
-3. Deploy to staging for validation
-4. Deploy to production after approval
+- Use reserved instances
+- Implement auto-scaling
+- Monitor resource usage
+- Clean up unused resources
 
 ## License
 

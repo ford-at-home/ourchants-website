@@ -1,73 +1,91 @@
-# Welcome to your Lovable project
+# OurChants
 
-## Project info
+A platform for preserving and sharing sacred indigenous chants from various cultures.
 
-**URL**: https://lovable.dev/projects/c151680b-584e-44e7-8ab0-c6df3fa7fbc2
+## Project Overview
 
-## How can I edit this code?
+OurChants is a web application dedicated to preserving and sharing sacred indigenous chants while maintaining their cultural significance and authenticity. The platform provides a respectful and accessible way to experience these cultural treasures.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- Browse and search sacred chants
+- Play audio recordings with a Spotify-inspired interface
+- View detailed information about each chant
+- Learn about the cultural significance and history
+- Responsive design for all devices
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c151680b-584e-44e7-8ab0-c6df3fa7fbc2) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: 
+  - React
+  - TypeScript
+  - Vite
+  - Tailwind CSS
+  - shadcn/ui components
+- **Backend**:
+  - AWS API Gateway
+  - AWS Lambda
+  - DynamoDB
+  - S3
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js (v18 or higher)
+- npm or yarn
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/ourchants-app.git
+cd ourchants-app
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
+```bash
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Create a `.env` file in the root directory with the following variables:
+```
+VITE_API_URL=your_api_url
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Project Structure
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+ourchants-app/
+├── src/
+│   ├── components/     # React components
+│   ├── contexts/       # React contexts
+│   ├── services/       # API services
+│   ├── utils/          # Utility functions
+│   └── pages/          # Page components
+├── infrastructure/     # AWS CDK infrastructure
+├── public/            # Static assets
+└── dist/              # Build output
+```
 
-**Use GitHub Codespaces**
+## Documentation
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- [API Specification](SPECIFICATION.md)
+- [Infrastructure Documentation](infrastructure/README.md)
 
-## What technologies are used for this project?
+## Contributing
 
-This project is built with:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## License
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/c151680b-584e-44e7-8ab0-c6df3fa7fbc2) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is licensed under the MIT License - see the LICENSE file for details.

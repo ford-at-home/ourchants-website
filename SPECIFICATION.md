@@ -1,24 +1,24 @@
 # OurChants API Specification
 
 ## Overview
-The OurChants API provides a RESTful interface for managing song data in the OurChants application. This document outlines the API endpoints, request/response formats, error handling, and integration guidelines for frontend developers.
+The OurChants API provides a RESTful interface for managing sacred chant data in the OurChants application. This document outlines the API endpoints, request/response formats, error handling, and integration guidelines.
 
 ## Base URL
 ```
-https://{api_id}.execute-api.{region}.amazonaws.com
+https://api.ourchants.com
 ```
 
 ## Authentication
-Currently, the API is publicly accessible. Future versions will implement authentication using AWS Cognito or API keys.
+The API is publicly accessible for read operations. Write operations require authentication using AWS Cognito.
 
 ## CORS Configuration
-The API is configured to accept requests from any origin:
+The API is configured to accept requests from the OurChants domain:
 ```
-Access-Control-Allow-Origin: *
+Access-Control-Allow-Origin: https://ourchants.com
 ```
 
 Allowed methods: GET, POST, PUT, DELETE
-Allowed headers: Content-Type, Accept
+Allowed headers: Content-Type, Accept, Authorization
 Max age: 3000 seconds
 
 ## Data Models
@@ -26,150 +26,150 @@ Max age: 3000 seconds
 ### Song Object
 ```typescript
 interface Song {
-  song_id?: string;       // UUID, auto-generated
+  song_id: string;        // UUID
   title: string;          // Required
   artist: string;         // Required
   album?: string;         // Optional
   genre?: string;         // Optional
   composer?: string;      // Optional
   version?: string;       // Optional
-  date?: string;         // Optional, format: "YYYY-MM-DD HH:MM:SS"
-  filename?: string;      // Optional
-  filepath?: string;      // Optional
+  date?: string;         // Optional, ISO 8601 format
   description?: string;   // Optional
-  lineage?: string[];    // Optional, defaults to empty array
+  lineage?: string[];    // Optional, cultural lineage
   s3_uri?: string;       // Optional, S3 URI of the audio file
-  duration?: string;     // Optional, duration in seconds
+  duration?: number;     // Optional, duration in seconds
+  cultural_context?: string; // Optional, cultural significance
+  language?: string;     // Optional, original language
+  transcription?: string; // Optional, written transcription
 }
 
 ### Pre-signed URL Request
 ```typescript
 interface PresignedUrlRequest {
-  bucket?: string;  // Optional, defaults to configured bucket
   key: string;      // Required, S3 object key
+  operation: 'get' | 'put'; // Required, operation type
 }
 ```
 
 ### Pre-signed URL Response
 ```typescript
 interface PresignedUrlResponse {
-  url: string;      // Pre-signed URL for the S3 object
+  url: string;      // Pre-signed URL
   expiresIn: number // Expiration time in seconds
 }
 ```
 
 ## Endpoints
 
-### 1. Create Song
-- **Method**: POST
+### 1. List Songs
+- **Method**: GET
 - **Path**: `/songs`
-- **Request Body**: Song object (without song_id)
-- **Response**: 201 Created
-- **Response Body**: Complete song object with generated song_id
-- **Example Request**:
+- **Query Parameters**:
+  - `limit`: number (default: 20)
+  - `offset`: number (default: 0)
+  - `search`: string (optional)
+  - `genre`: string (optional)
+  - `culture`: string (optional)
+- **Response**: 200 OK
+- **Response Body**: Array of song objects
+- **Example**:
 ```typescript
-const newSong = {
-  title: "Amazing Grace",
-  artist: "John Newton",
-  album: "Hymnal Volume 1",
-  bpm: "70",
-  composer: "John Newton",
-  version: "1.0",
-  date: "2024-04-17 08:46:12",
-  filename: "amazing_grace.mp3",
-  filepath: "Media/amazing_grace.mp3",
-  description: "Traditional hymn",
-  lineage: ["original"]
-};
-
-const response = await fetch(`${API_BASE_URL}/songs`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(newSong),
-});
+const response = await fetch(`${API_BASE_URL}/songs?limit=10&offset=0`);
+const songs = await response.json();
 ```
 
 ### 2. Get Song
 - **Method**: GET
 - **Path**: `/songs/{song_id}`
 - **Response**: 200 OK
-- **Response Body**: Complete song object
-- **Error**: 404 Not Found if song_id doesn't exist
+- **Response Body**: Song object
+- **Error**: 404 Not Found
 - **Example**:
 ```typescript
 const response = await fetch(`${API_BASE_URL}/songs/${songId}`);
 const song = await response.json();
 ```
 
-### 3. List Songs
-- **Method**: GET
+### 3. Create Song (Authenticated)
+- **Method**: POST
 - **Path**: `/songs`
-- **Response**: 200 OK
-- **Response Body**: Array of song objects that have an s3_uri attribute
-- **Note**: Only songs with an s3_uri attribute will be returned in the list
+- **Headers**: 
+  - `Authorization: Bearer {token}`
+- **Request Body**: Song object (without song_id)
+- **Response**: 201 Created
+- **Response Body**: Created song object
 - **Example**:
 ```typescript
-const response = await fetch(`${API_BASE_URL}/songs`);
-const songs = await response.json();
+const response = await fetch(`${API_BASE_URL}/songs`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify(newSong),
+});
 ```
 
-### 4. Update Song
+### 4. Update Song (Authenticated)
 - **Method**: PUT
 - **Path**: `/songs/{song_id}`
+- **Headers**: 
+  - `Authorization: Bearer {token}`
 - **Request Body**: Song object (without song_id)
 - **Response**: 200 OK
 - **Response Body**: Updated song object
-- **Error**: 404 Not Found if song_id doesn't exist
+- **Error**: 404 Not Found
 - **Example**:
 ```typescript
-const updatedSong = {
-  title: "Updated Amazing Grace",
-  artist: "John Newton",
-  // ... other fields
-};
-
 const response = await fetch(`${API_BASE_URL}/songs/${songId}`, {
   method: 'PUT',
   headers: {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   },
   body: JSON.stringify(updatedSong),
 });
 ```
 
-### 5. Delete Song
+### 5. Delete Song (Authenticated)
 - **Method**: DELETE
 - **Path**: `/songs/{song_id}`
+- **Headers**: 
+  - `Authorization: Bearer {token}`
 - **Response**: 204 No Content
-- **Error**: 404 Not Found if song_id doesn't exist
+- **Error**: 404 Not Found
 - **Example**:
 ```typescript
 const response = await fetch(`${API_BASE_URL}/songs/${songId}`, {
   method: 'DELETE',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  },
 });
 ```
 
-### 6. Generate Pre-signed URL
+### 6. Generate Pre-signed URL (Authenticated)
 - **Method**: POST
 - **Path**: `/presigned-url`
-- **Request Body**: Pre-signed URL Request object
+- **Headers**: 
+  - `Authorization: Bearer {token}`
+- **Request Body**: PresignedUrlRequest
 - **Response**: 200 OK
-- **Response Body**: Pre-signed URL Response object
-- **Error**: 400 Bad Request if key is missing, 404 Not Found if bucket or object doesn't exist
+- **Response Body**: PresignedUrlResponse
+- **Error**: 400 Bad Request
 - **Example**:
 ```typescript
 const response = await fetch(`${API_BASE_URL}/presigned-url`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   },
   body: JSON.stringify({
-    key: "songs/amazing_grace.mp3"
+    key: "songs/amazing_grace.mp3",
+    operation: "get"
   }),
 });
-const { url, expiresIn } = await response.json();
 ```
 
 ## Error Handling
@@ -179,89 +179,69 @@ const { url, expiresIn } = await response.json();
 interface ErrorResponse {
   error: string;    // Error message
   code: string;     // Error code
+  details?: any;    // Additional error details
 }
 ```
 
 ### Common Error Codes
 - **400 Bad Request**: Invalid request body or parameters
+- **401 Unauthorized**: Missing or invalid authentication
+- **403 Forbidden**: Insufficient permissions
 - **404 Not Found**: Resource not found
 - **409 Conflict**: Concurrent update conflict
 - **500 Internal Server Error**: Server-side error
 
+## Rate Limiting
+- 100 requests per minute per IP address
+- 1000 requests per hour per IP address
+
 ## Best Practices
 
-### 1. Concurrent Operations
+### 1. Error Handling
 ```typescript
-// Example of handling concurrent updates
-const response = await fetch(`${API_BASE_URL}/songs/${songId}`);
-const song = await response.json();
-
-// Make changes
-song.title = "Updated Title";
-
-// Update with optimistic locking
-const updateResponse = await fetch(`${API_BASE_URL}/songs/${songId}`, {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(song),
-});
-
-if (updateResponse.status === 409) {
-  // Handle conflict
-  console.log("Song was modified by another user");
+async function handleApiError(response: Response) {
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'API request failed');
+  }
+  return response.json();
 }
 ```
 
 ### 2. Audio Playback
 ```typescript
-// Example of using pre-signed URLs for audio playback
 async function getAudioUrl(song: Song) {
-  // Extract bucket and key from S3 URI
-  const s3Uri = song.s3_uri;
-  if (!s3Uri) return null;
+  if (!song.s3_uri) return null;
   
-  const [bucket, ...keyParts] = s3Uri.replace('s3://', '').split('/');
-  const key = keyParts.join('/');
-  
-  // Get pre-signed URL
   const response = await fetch(`${API_BASE_URL}/presigned-url`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ bucket, key }),
+    body: JSON.stringify({
+      key: song.s3_uri.replace('s3://', ''),
+      operation: 'get'
+    }),
   });
   
-  if (!response.ok) {
-    throw new Error('Failed to get pre-signed URL');
-  }
-  
-  const { url, expiresIn } = await response.json();
+  const { url } = await handleApiError(response);
   return url;
-}
-
-// Usage in audio player component
-const audioUrl = await getAudioUrl(song);
-if (audioUrl) {
-  audioPlayer.src = audioUrl;
 }
 ```
 
-## Rate Limits and Quotas
-The API uses AWS API Gateway's default limits:
-- 10,000 requests per second per region
-- Implement appropriate error handling for throttling (429 responses)
+### 3. Caching
+- Cache song lists for 5 minutes
+- Cache individual songs for 1 hour
+- Cache pre-signed URLs for their duration (typically 1 hour)
 
-Note: These are AWS-imposed limits and may vary based on your AWS account type and region.
+## Versioning
+The API is versioned through the URL path:
+```
+https://api.ourchants.com/v1/songs
+```
 
-## Future Enhancements
-1. Authentication and authorization
-2. Pagination for list endpoint
-3. Search and filter capabilities
-4. File upload integration
-5. Versioning support
+Current version: v1
 
 ## Support
 For API support or to report issues, please contact the API team or create an issue in the repository.
