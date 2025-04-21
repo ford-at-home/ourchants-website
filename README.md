@@ -1,163 +1,89 @@
-# OurChants
+# OurChants Website
 
-A platform for making it easy to learn and share circle songs, joining hearts and raising our vibration for a healthier, more compassionate, loving, thriving planet Earth.
-
-## Project Overview
-
-OurChants is a web application dedicated to preserving and sharing sacred songs. Our song forest is open for browsing, providing a respectful and accessible way to experience these cultural treasures.
+A modern web application for exploring and listening to sacred chants, built with React and deployed on AWS.
 
 ## Features
 
-- Browse and search songs
-- Play audio recordings with a Spotify-inspired interface
-- View detailed information about each song
+- Browse and search through a collection of sacred chants
+- Play audio files with a Spotify-like interface
+- Share songs with timestamps
 - Responsive design for all devices
-- Blog section for updates and community engagement
+- Progressive Web App capabilities
 
-## Tech Stack
+## Infrastructure
 
-- **Frontend**: 
-  - React
-  - TypeScript
-  - Vite
-  - Tailwind CSS
-  - shadcn/ui components
-- **Backend**:
-  - AWS API Gateway
-  - AWS Lambda
-  - DynamoDB
-  - S3 for static hosting
+The application is deployed on AWS using:
+- S3 for static website hosting
+- CloudFront for global content delivery
+- WAF for security
+- API Gateway for backend services
 
-## Getting Started
+### CloudFront Distribution
+
+The site is served through a CloudFront distribution with the following configuration:
+- S3 REST endpoint as origin
+- HTTPS-only access
+- SPA routing support
+- Global edge locations
+- WAF protection
+
+Access the site at: `https://d21wmvl5q9ujuy.cloudfront.net`
+
+## Development
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm or yarn
-- AWS CLI configured with appropriate credentials
+- Node.js 18+
+- Python 3.11+
+- AWS CLI configured
+- CDK CLI installed
 
-### Installation
+### Setup
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/ourchants-app.git
-cd ourchants-app
-```
-
+1. Clone the repository
 2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up Python virtual environment:
+   ```bash
+   cd infrastructure
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+### Running Locally
+
 ```bash
-make install
-```
-
-3. Create a `.env` file in the root directory with the following variables:
-```
-API_ENDPOINT=your_api_url
-```
-
-4. Start the development server:
-```bash
-make dev
-```
-
-## Available Commands
-
-We use Make for common operations. Here are the available commands:
-
-### Development
-```bash
-make install     # Install dependencies
-make dev        # Start development server
-make build      # Build the project
-make lint       # Run linter
-```
-
-### Testing
-```bash
-make test       # Run unit tests
-make test-build # Verify build
-make test-all   # Run all tests (unit + build verification)
+npm run dev
 ```
 
 ### Deployment
+
+Deploy the infrastructure:
 ```bash
-make setup-env  # Set up environment variables
-make update-api # Update API configuration
-make deploy-s3  # Deploy to S3
-make configure-cors # Configure CORS for API Gateway
-make deploy     # Full deployment (test + deploy)
-make deploy-prod # Production deployment (includes CORS)
-make boom      # Complete deployment process
+make cdk
 ```
 
-### Infrastructure
+Deploy the frontend:
 ```bash
-make setup-infra # Set up AWS infrastructure
-make clean      # Clean build files and dependencies
-```
-
-## Deployment Process
-
-The deployment process is broken down into stages that can be run independently or as part of a complete deployment:
-
-1. **Environment Setup** (`make setup-env`)
-   - Verifies and sets up environment variables
-   - Ensures API endpoint is configured
-
-2. **API Configuration** (`make update-api`)
-   - Updates the API client with the correct endpoint
-   - Configures API request headers and methods
-
-3. **Build and Test** (`make test-all`)
-   - Runs unit tests
-   - Verifies the build
-   - Ensures code quality
-
-4. **S3 Deployment** (`make deploy-s3`)
-   - Builds the application
-   - Syncs files to S3 bucket
-   - Configures static website hosting
-
-5. **CORS Configuration** (`make configure-cors`)
-   - Configures API Gateway CORS settings
-   - Updates deployment
-   - Ensures frontend can communicate with API
-
-### Complete Deployment Options
-
-- `make deploy` - Basic deployment (tests + API update + S3)
-- `make deploy-prod` - Production deployment (includes CORS configuration)
-- `make boom` - Complete deployment (everything)
-
-## Project Structure
-
-```
-ourchants-app/
-├── src/
-│   ├── components/     # React components
-│   ├── contexts/       # React contexts
-│   ├── services/       # API services
-│   ├── utils/          # Utility functions
-│   ├── pages/          # Page components
-│   └── content/        # Blog posts and static content
-├── infrastructure/     # AWS CDK infrastructure
-│   ├── deploy.sh      # Main infrastructure deployment script
-│   └── lambda/        # Lambda function code
-├── public/            # Static assets
-└── dist/              # Build output
+make deploy
 ```
 
 ## Documentation
 
-- [API Specification](SPECIFICATION.md)
-- [Infrastructure Documentation](infrastructure/README.md)
+- [Development Guide](DEVELOPMENT.md)
+- [CloudFront Specification](SPEC_CD.md)
+- [API Documentation](API.md)
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
