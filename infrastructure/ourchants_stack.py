@@ -29,6 +29,7 @@ from aws_cdk import (
     aws_ssm as ssm,
     CfnParameter,
     Fn,
+    aws_certificatemanager as acm,
 )
 from constructs import Construct
 import os
@@ -37,6 +38,7 @@ from typing import Dict, Any
 import boto3
 import time
 from dotenv import load_dotenv
+from domain_config import DomainConfig
 
 class OurChantsStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -45,6 +47,7 @@ class OurChantsStack(Stack):
         # Load environment variables from .env file
         load_dotenv()
         api_endpoint = os.getenv('API_ENDPOINT')
+        domain_name = os.getenv('DOMAIN_NAME', 'ourchants.com')
         
         if not api_endpoint:
             raise ValueError("API_ENDPOINT not found in .env file. Please run get-endpoint.sh first.")
@@ -64,7 +67,7 @@ class OurChantsStack(Stack):
             bucket_name="ourchants-website",
             website_index_document="index.html",
             website_error_document="index.html",
-            public_read_access=True,
+            public_read_access=False,  # We'll set this explicitly with a bucket policy
             block_public_access=s3.BlockPublicAccess(
                 block_public_acls=False,
                 block_public_policy=False,
@@ -73,6 +76,22 @@ class OurChantsStack(Stack):
             ),
             removal_policy=RemovalPolicy.DESTROY,  # For development only
             auto_delete_objects=True,  # For development only
+        )
+
+        # Add bucket policy for public read access
+        bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                principals=[iam.AnyPrincipal()],
+                actions=[
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                ],
+                resources=[
+                    bucket.bucket_arn,
+                    f"{bucket.bucket_arn}/*"
+                ]
+            )
         )
 
         # Add CORS configuration to the bucket
@@ -154,7 +173,14 @@ class OurChantsStack(Stack):
             ]
         )
 
-        # Create CloudFront distribution
+        # Import the existing certificate (add this before the CloudFront distribution)
+        certificate = acm.Certificate.from_certificate_arn(
+            self,
+            "OurchantsCert",
+            "arn:aws:acm:us-east-1:418272766513:certificate/e5cce858-2cbe-41b2-938e-040822835e01"
+        )
+
+        # Update the CloudFront distribution configuration
         distribution = cloudfront.Distribution(
             self,
             "WebsiteDistribution",
@@ -169,6 +195,8 @@ class OurChantsStack(Stack):
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
                 origin_request_policy=cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN
             ),
+            domain_names=["ourchants.com"],  # Add domain name directly
+            certificate=certificate,  # Add certificate directly
             error_responses=[
                 cloudfront.ErrorResponse(
                     http_status=403,
@@ -181,6 +209,23 @@ class OurChantsStack(Stack):
                     response_page_path="/index.html"
                 )
             ]
+        )
+
+        # Update the domain configuration section
+        if domain_name:
+            try:
+                domain_config = DomainConfig(self, domain_name)
+                domain_config.create_a_record(distribution)
+            except Exception as e:
+                print(f"Warning: Could not configure Route53 record: {str(e)}")
+                print("If the record already exists, you can ignore this warning.")
+
+        # Output the CloudFront URL
+        CfnOutput(
+            self,
+            "WebsiteURL",
+            value=f"https://{distribution.distribution_domain_name}",
+            description="URL of the website"
         )
 
         # Generate songApi.ts file with full API implementation
@@ -283,13 +328,6 @@ export const updateSongWithRetry = async (
             f.write(song_api_content)
 
         # Outputs
-        CfnOutput(
-            self,
-            "WebsiteURL",
-            value=f"https://{distribution.distribution_domain_name}",
-            description="URL of the website"
-        )
-
         CfnOutput(
             self,
             "ApiEndpoint",

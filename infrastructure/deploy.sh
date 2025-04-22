@@ -126,9 +126,9 @@ echo "Found API Gateway ID: $API_ID"
 # Create a temporary file for the CORS configuration
 cat > cors-config.json << EOF
 {
-  "AllowOrigins": ["$WEBSITE_URL"],
-  "AllowMethods": ["GET", "POST", "PUT", "DELETE"],
-  "AllowHeaders": ["Content-Type", "Accept"],
+  "AllowOrigins": ["$WEBSITE_URL", "https://ourchants.com", "https://www.ourchants.com"],
+  "AllowMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  "AllowHeaders": ["Content-Type", "Accept", "Authorization"],
   "MaxAge": 3000
 }
 EOF

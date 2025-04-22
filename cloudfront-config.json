@@ -3,29 +3,19 @@
     "Aliases": {
         "Quantity": 0
     },
-    "DefaultRootObject": "",
+    "DefaultRootObject": "index.html",
     "Origins": {
         "Quantity": 1,
         "Items": [
             {
                 "Id": "OurChantsFrontendStackWebsiteDistributionOrigin11707423E",
-                "DomainName": "ourchants-website.s3-website-us-east-1.amazonaws.com",
+                "DomainName": "ourchants-website.s3.amazonaws.com",
                 "OriginPath": "",
                 "CustomHeaders": {
                     "Quantity": 0
                 },
-                "CustomOriginConfig": {
-                    "HTTPPort": 80,
-                    "HTTPSPort": 443,
-                    "OriginProtocolPolicy": "http-only",
-                    "OriginSslProtocols": {
-                        "Quantity": 1,
-                        "Items": [
-                            "TLSv1.2"
-                        ]
-                    },
-                    "OriginReadTimeout": 30,
-                    "OriginKeepaliveTimeout": 5
+                "S3OriginConfig": {
+                    "OriginAccessIdentity": ""
                 },
                 "ConnectionAttempts": 3,
                 "ConnectionTimeout": 10,
@@ -90,17 +80,17 @@
                 "ErrorCode": 403,
                 "ResponsePagePath": "/index.html",
                 "ResponseCode": "200",
-                "ErrorCachingMinTTL": 300
+                "ErrorCachingMinTTL": 0
             },
             {
                 "ErrorCode": 404,
                 "ResponsePagePath": "/index.html",
                 "ResponseCode": "200",
-                "ErrorCachingMinTTL": 300
+                "ErrorCachingMinTTL": 0
             }
         ]
     },
-    "Comment": "",
+    "Comment": "OurChants Website Distribution",
     "Logging": {
         "Enabled": false,
         "IncludeCookies": false,
@@ -112,7 +102,7 @@
     "ViewerCertificate": {
         "CloudFrontDefaultCertificate": true,
         "SSLSupportMethod": "vip",
-        "MinimumProtocolVersion": "TLSv1",
+        "MinimumProtocolVersion": "TLSv1.2_2021",
         "CertificateSource": "cloudfront"
     },
     "Restrictions": {
@@ -126,4 +116,4 @@
     "IsIPV6Enabled": true,
     "ContinuousDeploymentPolicyId": "",
     "Staging": false
-}
+} 

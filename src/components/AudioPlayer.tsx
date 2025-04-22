@@ -149,9 +149,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         }
       } catch (err) {
         console.error('Error setting up audio:', err);
-        setError('Failed to load audio');
-        setLoadingState('error');
-        setPlayerState('error');
+        if (retryCount < MAX_RETRIES) {
+          setRetryCount(prev => prev + 1);
+          toast.error('Failed to load audio. Retrying...', {
+            duration: 3000,
+            action: {
+              label: 'Retry Now',
+              onClick: () => setupAudio()
+            }
+          });
+        } else {
+          setError('Failed to load audio after multiple attempts. Please try again later.');
+          setLoadingState('error');
+          setPlayerState('error');
+          toast.error('Failed to load audio after multiple attempts. Please try again later.');
+        }
       }
     };
 
