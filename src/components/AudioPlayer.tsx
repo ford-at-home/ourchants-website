@@ -126,6 +126,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       return;
     }
 
+    console.log('AudioPlayer: New song selected', { s3Uri, prevS3Uri: prevS3UriRef.current });
     prevS3UriRef.current = s3Uri;
     setLoadingState('loading');
     setError(null);
@@ -133,17 +134,28 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     const setupAudio = async () => {
       try {
+        // First, stop and reset the current audio
+        if (audioRef.current) {
+          console.log('AudioPlayer: Stopping current audio');
+          audioRef.current.pause();
+          audioRef.current.src = '';
+          audioRef.current.load(); // Force a reload of the audio element
+        }
+
         const s3Info = extractS3Info(s3Uri);
+        console.log('AudioPlayer: Fetching presigned URL', s3Info);
         const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
         
         if (audioRef.current) {
+          console.log('AudioPlayer: Setting new audio source');
           audioRef.current.src = response.url;
-          audioRef.current.currentTime = 0; // Ensure audio starts from beginning
+          audioRef.current.load(); // Force a reload with the new source
           setAudioUrl(response.url);
           setLoadingState('ready');
           
           // Set initial timestamp if provided
           if (initialTimestamp) {
+            console.log('AudioPlayer: Setting initial timestamp', initialTimestamp);
             audioRef.current.currentTime = initialTimestamp;
           }
         }
@@ -175,6 +187,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (!audioRef.current || !audioUrl) return;
 
     const handlePlayState = async () => {
+      console.log('AudioPlayer: Play state changed', { shouldPlay, playerState, audioUrl });
+      
       // Never try to autoplay when loading from a URL
       const isFromUrl = window.location.search.includes('song=');
       if (isFromUrl) {
@@ -183,6 +197,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       if (shouldPlay && playerState !== 'playing') {
         try {
+          console.log('AudioPlayer: Attempting to play');
           await audioRef.current!.play();
           setPlayerState('playing');
           onPlay?.();
@@ -196,6 +211,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setPlayerState('error');
         }
       } else if (!shouldPlay && playerState === 'playing') {
+        console.log('AudioPlayer: Pausing playback');
         audioRef.current!.pause();
         setPlayerState('idle');
         onPause?.();
