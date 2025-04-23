@@ -10,5 +10,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  assetsInclude: ['**/*.md']
+  assetsInclude: ['**/*.md'],
+  base: '/', // Ensure assets are loaded from root
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    // Ensure proper handling of client-side routing
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
 });
