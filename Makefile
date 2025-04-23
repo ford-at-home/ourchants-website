@@ -81,12 +81,8 @@ deploy: build
 	fi
 
 	@# Update API configuration
-	@API_ENDPOINT=$$(grep API_ENDPOINT .env | cut -d '=' -f2); \
-	if [ -z "$$API_ENDPOINT" ]; then \
-		echo "Error: API_ENDPOINT not found in .env file"; \
-		exit 1; \
-	fi; \
-	sed "s|API_ENDPOINT_PLACEHOLDER|$${API_ENDPOINT}|g" "$(PROJECT_ROOT)/src/services/songApi.template.ts" > "$(PROJECT_ROOT)/src/services/songApi.ts"
+	@echo "🔄 Updating API configuration..."
+	@node scripts/update-api-endpoint.js
 
 	@# Configure S3 for static website hosting
 	@echo "⚙️ Configuring S3 for static website hosting..."
