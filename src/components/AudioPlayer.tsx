@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Loader2, RotateCcw, Share2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, Loader2, RotateCcw, Share2, Repeat } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { getPresignedUrl } from "../services/songApi";
@@ -385,8 +385,32 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const getLoopButtonClass = () => {
     const baseClass = "spotify-button w-8 h-8 p-0";
-    if (loopMode === 'off') return baseClass;
-    return `${baseClass} text-spotify-green`;
+    if (loopMode === 'off') return `${baseClass} text-muted-foreground hover:text-foreground`;
+    return `${baseClass} text-spotify-green hover:text-spotify-green/80`;
+  };
+
+  const getLoopIcon = () => {
+    switch (loopMode) {
+      case 'one':
+        return (
+          <div className="relative">
+            <Repeat className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 text-xs font-bold bg-spotify-green text-black rounded-full w-4 h-4 flex items-center justify-center">1</span>
+          </div>
+        );
+      case 'all':
+        return <Repeat className="h-5 w-5" />;
+      default:
+        return <Repeat className="h-5 w-5" />;
+    }
+  };
+
+  const handlePlayPause = () => {
+    if (playerState === 'playing') {
+      onPause?.();
+    } else {
+      onPlay?.();
+    }
   };
 
   if (error) {
@@ -424,7 +448,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <Button 
               variant="ghost" 
               size="icon"
-              className="spotify-button w-8 h-8 p-0"
+              className="spotify-button w-8 h-8 p-0 text-muted-foreground hover:text-foreground"
               onClick={handleSkipPrevious}
             >
               <SkipBack className="h-5 w-5" />
@@ -433,7 +457,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="spotify-button w-10 h-10 p-0"
+              className="spotify-button w-10 h-10 p-0 text-muted-foreground hover:text-foreground"
+              onClick={handlePlayPause}
+            >
+              {playerState === 'playing' ? (
+                <Pause className="h-5 w-5" />
+              ) : (
+                <Play className="h-5 w-5" />
+              )}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="spotify-button w-8 h-8 p-0 text-muted-foreground hover:text-foreground"
               onClick={handleSkipNext}
             >
               <SkipForward className="h-5 w-5" />
@@ -444,13 +481,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               size="icon"
               className={getLoopButtonClass()}
               onClick={toggleLoop}
+              title={loopMode === 'off' ? 'Loop Off' : loopMode === 'all' ? 'Loop All' : 'Loop One'}
             >
-              <div className="relative">
-                <RotateCcw className="h-5 w-5" />
-                {loopMode === 'one' && (
-                  <span className="absolute -top-1 -right-1 text-xs font-bold">1</span>
-                )}
-              </div>
+              {getLoopIcon()}
             </Button>
           </div>
 
