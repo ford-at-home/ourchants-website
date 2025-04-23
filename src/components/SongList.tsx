@@ -58,8 +58,8 @@ export const SongList = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-spotify-lightgray text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-spotify-green mx-auto mb-4"></div>
+        <div className="text-muted-foreground text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Loading songs...</p>
         </div>
       </div>
@@ -68,11 +68,11 @@ export const SongList = () => {
 
   if (status === 'error') {
     return (
-      <div className="text-red-500 text-center py-10">
+      <div className="text-destructive text-center py-10">
         <p>Error loading songs. Please check your connection and try again.</p>
         <button 
           onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-spotify-green text-white rounded-full"
+          className="spotify-button mt-4"
         >
           Retry
         </button>
@@ -82,7 +82,7 @@ export const SongList = () => {
 
   if (!Array.isArray(filteredSongs) || filteredSongs.length === 0) {
     return (
-      <div className="text-spotify-lightgray text-center py-10">
+      <div className="text-muted-foreground text-center py-10">
         {searchTerm ? 'No songs found matching your search.' : 'No songs available.'}
       </div>
     );
@@ -120,26 +120,26 @@ export const SongList = () => {
                 }}
               >
                 <div
-                  className={`flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-all cursor-pointer group ${
-                    selectedSong?.song_id === song.song_id ? 'bg-white/10' : ''
+                  className={`spotify-card flex items-center gap-4 ${
+                    selectedSong?.song_id === song.song_id ? 'bg-secondary/80' : ''
                   }`}
                   onClick={() => handleSongClick(song)}
                 >
-                  <div className="relative w-12 h-12 bg-spotify-darkgray rounded-md overflow-hidden flex items-center justify-center group-hover:shadow-lg transition-all">
-                    <Play className="w-6 h-6 text-spotify-lightgray group-hover:text-spotify-green" />
+                  <div className="relative w-12 h-12 bg-secondary rounded-md overflow-hidden flex items-center justify-center group-hover:shadow-lg transition-all">
+                    <Play className="w-6 h-6 text-muted-foreground group-hover:text-primary" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Play className="w-6 h-6 text-white" />
+                      <Play className="w-6 h-6 text-foreground" />
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-medium text-base hover:underline">{song.title}</h3>
-                    <p className="text-spotify-lightgray text-sm">{song.artist}</p>
+                    <h3 className="text-foreground font-medium text-base hover:underline">{song.title}</h3>
+                    <p className="text-muted-foreground text-sm">{song.artist}</p>
                     {song.album && (
-                      <p className="text-spotify-lightgray text-xs">{song.album}</p>
+                      <p className="text-muted-foreground text-xs">{song.album}</p>
                     )}
                   </div>
                   {song.bpm && (
-                    <div className="text-spotify-lightgray text-sm">{song.bpm} BPM</div>
+                    <div className="text-muted-foreground text-sm">{song.bpm} BPM</div>
                   )}
                 </div>
               </div>

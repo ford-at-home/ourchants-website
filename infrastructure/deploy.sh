@@ -91,13 +91,26 @@ npm run build
 
 # Get the S3 bucket name from the CDK stack
 echo "Getting S3 bucket name from CDK stack..."
-BUCKET_NAME=$(aws cloudformation describe-stacks \
+CF_DISTRO_ID=$(aws cloudformation describe-stack-resources \
   --stack-name "OurChantsFrontendStack" \
-  --query "Stacks[0].Outputs[?OutputKey=='WebsiteURL'].OutputValue" \
-  --output text | sed 's|http://||' | sed 's|.s3-website-us-east-1.amazonaws.com||')
+  --query "StackResources[?ResourceType=='AWS::CloudFront::Distribution'].PhysicalResourceId | [0]" \
+  --output text)
+
+if [ -z "$CF_DISTRO_ID" ]; then
+  echo "Error: Could not find CloudFront distribution in stack"
+  exit 1
+fi
+
+echo "Found CloudFront distribution: $CF_DISTRO_ID"
+
+# Get the S3 bucket name from the CloudFront distribution's origin
+BUCKET_NAME=$(aws cloudfront get-distribution-config \
+  --id "$CF_DISTRO_ID" \
+  --query "DistributionConfig.Origins.Items[0].DomainName" \
+  --output text | sed 's|.s3-website-us-east-1.amazonaws.com||')
 
 if [ -z "$BUCKET_NAME" ]; then
-  echo "Error: Could not fetch S3 bucket name from CloudFormation stack"
+  echo "Error: Could not fetch S3 bucket name from CloudFront distribution"
   exit 1
 fi
 
@@ -107,8 +120,19 @@ echo "Found S3 bucket: $BUCKET_NAME"
 echo "Uploading files to S3..."
 aws s3 sync "$PROJECT_ROOT/dist/" "s3://$BUCKET_NAME" --delete
 
-# Get the S3 website URL
-WEBSITE_URL="http://$BUCKET_NAME.s3-website-us-east-1.amazonaws.com"
+# Get the CloudFront distribution URL
+echo "Getting CloudFront distribution URL..."
+CF_URL=$(aws cloudformation describe-stacks \
+  --stack-name "OurChantsFrontendStack" \
+  --query "Stacks[0].Outputs[?OutputKey=='WebsiteURL'].OutputValue" \
+  --output text)
+
+if [ -z "$CF_URL" ]; then
+  echo "Error: Could not fetch CloudFront URL from CloudFormation stack"
+  exit 1
+fi
+
+echo "Found CloudFront URL: $CF_URL"
 
 # Get the API Gateway ID
 echo "Fetching API Gateway ID..."
@@ -126,7 +150,7 @@ echo "Found API Gateway ID: $API_ID"
 # Create a temporary file for the CORS configuration
 cat > cors-config.json << EOF
 {
-  "AllowOrigins": ["$WEBSITE_URL", "https://ourchants.com", "https://www.ourchants.com"],
+  "AllowOrigins": ["$CF_URL", "https://ourchants.com", "https://www.ourchants.com"],
   "AllowMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   "AllowHeaders": ["Content-Type", "Accept", "Authorization"],
   "MaxAge": 3000
@@ -150,4 +174,4 @@ rm cors-config.json
 
 echo "--------------------------------"
 echo "Deployment complete!"
-echo "Your website is available at: $WEBSITE_URL" 
+echo "Your website is available at: $CF_URL" 

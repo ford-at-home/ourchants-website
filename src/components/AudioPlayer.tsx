@@ -325,131 +325,68 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-spotify-darkgray p-4">
-      <div className="max-w-4xl mx-auto flex flex-col gap-4">
+    <div className="spotify-player fixed bottom-0 left-0 right-0">
+      <div className="container mx-auto flex items-center justify-between px-4">
         {/* Song Info */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <p className="text-white font-medium truncate">{getLoadingText()}</p>
-            {artist && playerState !== 'error' && (
-              <p className="text-spotify-lightgray text-sm truncate">{artist}</p>
-            )}
+        <div className="flex items-center space-x-4 min-w-[200px]">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-foreground truncate">{title}</span>
+            <span className="text-xs text-muted-foreground truncate">{artist}</span>
           </div>
-          {songId && playerState !== 'error' && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShare}
-              className="text-spotify-lightgray hover:text-white"
-              title="Share song"
-            >
-              <Share2 className="h-5 w-5" />
-            </Button>
-          )}
         </div>
 
-        {/* Progress Bar */}
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-spotify-lightgray">{formatTime(currentTime)}</span>
-          <Slider
-            value={[currentTime]}
-            max={duration}
-            step={0.1}
-            onValueChange={handleTimeChange}
-            className="flex-1"
-            disabled={!s3Uri || isLoading || !!error || loadingState !== 'ready'}
-            aria-label="Progress"
-          />
-          <span className="text-sm text-spotify-lightgray">{formatTime(duration)}</span>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
+        {/* Player Controls */}
+        <div className="flex flex-col items-center flex-1 max-w-2xl">
+          <div className="flex items-center justify-center space-x-4 mb-2">
+            <Button 
+              variant="ghost" 
               size="icon"
-              className="text-spotify-lightgray hover:text-white"
-              onClick={() => {
-                if (audioRef.current) {
-                  audioRef.current.currentTime = Math.max(0, currentTime - 10);
-                }
-              }}
-              disabled={!s3Uri || isLoading || !!error || loadingState !== 'ready'}
+              className="spotify-button w-8 h-8 p-0"
+              onClick={() => {/* Previous track logic */}}
             >
               <SkipBack className="h-5 w-5" />
             </Button>
+
             <Button
               variant="ghost"
               size="icon"
-              className="bg-white text-black hover:scale-105 transition-transform"
-              onClick={async () => {
-                if (!audioRef.current) {
-                  console.error('Audio ref is null');
-                  return;
-                }
-                try {
-                  if (playerState === 'playing') {
-                    console.log('Pausing audio');
-                    audioRef.current.pause();
-                    setPlayerState('idle');
-                    onPause?.();
-                  } else {
-                    console.log('Playing audio');
-                    await audioRef.current.play();
-                    console.log('Audio play successful');
-                    setPlayerState('playing');
-                    onPlay?.();
-                  }
-                } catch (err) {
-                  console.error('Error starting playback:', err);
-                  if (err instanceof Error && err.name === 'NotAllowedError') {
-                    toast.error('Please click the play button to start playback');
-                  } else {
-                    setError('Error starting playback. Please try again.');
-                    setPlayerState('error');
-                  }
-                }
-              }}
-              disabled={!s3Uri || isLoading || !!error || loadingState !== 'ready'}
-              aria-label={playerState === 'playing' ? 'Pause' : 'Play'}
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : playerState === 'playing' ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-spotify-lightgray hover:text-white"
-              onClick={() => {
-                if (audioRef.current) {
-                  audioRef.current.currentTime = Math.min(duration, currentTime + 10);
-                }
-              }}
-              disabled={!s3Uri || isLoading || !!error || loadingState !== 'ready'}
+              className="spotify-button w-10 h-10 p-0"
+              onClick={() => {/* Next track logic */}}
             >
               <SkipForward className="h-5 w-5" />
             </Button>
           </div>
 
-          {/* Volume Control */}
-          <div className="flex items-center gap-2">
-            <Volume2 className="h-5 w-5 text-spotify-lightgray" />
+          {/* Progress Bar */}
+          <div className="w-full flex items-center space-x-2">
+            <span className="text-xs text-muted-foreground w-10 text-right">
+              {formatTime(currentTime)}
+            </span>
             <Slider
-              value={[volume * 100]}
-              max={100}
+              value={[currentTime]}
+              min={0}
+              max={duration || 100}
               step={1}
-              onValueChange={handleVolumeChange}
-              className="w-24"
-              disabled={isLoading || !!error}
-              aria-label="Volume"
+              className="flex-1"
+              onValueChange={handleTimeChange}
             />
+            <span className="text-xs text-muted-foreground w-10">
+              {formatTime(duration)}
+            </span>
           </div>
+        </div>
+
+        {/* Volume Control */}
+        <div className="flex items-center space-x-2 min-w-[150px]">
+          <Volume2 className="h-4 w-4 text-muted-foreground" />
+          <Slider
+            value={[volume * 100]}
+            min={0}
+            max={100}
+            step={1}
+            className="w-24"
+            onValueChange={(value) => handleVolumeChange(value)}
+          />
         </div>
       </div>
     </div>

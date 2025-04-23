@@ -48,9 +48,7 @@ describe('SearchBar', () => {
     );
 
     const searchInput = screen.getByRole('textbox');
+    expect(searchInput).toHaveClass('spotify-input');
     expect(searchInput).toHaveClass('pl-10');
-    expect(searchInput).toHaveClass('bg-white/5');
-    expect(searchInput).toHaveClass('border-none');
-    expect(searchInput).toHaveClass('text-white');
   });
 }); 

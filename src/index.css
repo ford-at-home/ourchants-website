@@ -93,3 +93,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Spotify-like styles */
+@layer components {
+  .spotify-card {
+    @apply bg-secondary hover:bg-secondary/80 transition-colors duration-200 rounded-md p-4 cursor-pointer;
+  }
+
+  .spotify-button {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full px-6 py-2 transition-colors duration-200;
+  }
+
+  .spotify-input {
+    @apply bg-secondary border-secondary text-foreground rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none;
+  }
+
+  .spotify-sidebar {
+    @apply bg-background border-r border-border p-4;
+  }
+
+  .spotify-nav-item {
+    @apply text-muted-foreground hover:text-foreground transition-colors duration-200;
+  }
+
+  .spotify-player {
+    @apply bg-secondary border-t border-border p-4;
+  }
+}

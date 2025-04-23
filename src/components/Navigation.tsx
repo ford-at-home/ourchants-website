@@ -4,17 +4,17 @@ import { Home, Info, ClipboardList } from 'lucide-react';
 
 const Navigation: React.FC = () => {
   return (
-    <nav className="bg-spotify-darkgray text-white p-4">
-      <div className="container mx-auto flex justify-center space-x-8">
-        <Link to="/" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
+    <nav className="spotify-sidebar">
+      <div className="container mx-auto flex flex-col space-y-4">
+        <Link to="/" className="spotify-nav-item flex items-center space-x-2">
           <Home className="w-5 h-5" />
           <span>Songs</span>
         </Link>
-        <Link to="/about" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
+        <Link to="/about" className="spotify-nav-item flex items-center space-x-2">
           <Info className="w-5 h-5" />
           <span>About</span>
         </Link>
-        <Link to="/survey" className="flex items-center space-x-2 hover:text-spotify-green transition-colors">
+        <Link to="/survey" className="spotify-nav-item flex items-center space-x-2">
           <ClipboardList className="w-5 h-5" />
           <span>Survey</span>
         </Link>
