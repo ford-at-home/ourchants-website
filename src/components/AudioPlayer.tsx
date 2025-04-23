@@ -18,6 +18,8 @@ interface AudioPlayerProps {
   shouldPlay?: boolean;
   onPlayStarted?: () => void;
   initialTimestamp?: number;
+  onSkipNext?: () => void;
+  onSkipPrevious?: () => void;
 }
 
 type PlayerState = 'idle' | 'loading' | 'buffering' | 'playing' | 'error';
@@ -31,7 +33,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onPause, 
   shouldPlay = false,
   onPlayStarted,
-  initialTimestamp
+  initialTimestamp,
+  onSkipNext,
+  onSkipPrevious
 }) => {
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [currentTime, setCurrentTime] = useState(0);
@@ -45,6 +49,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const prevS3UriRef = useRef<string | null>(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [isLooping, setIsLooping] = useState(false);
   const MAX_RETRIES = 3;
 
   // Initialize audio element only once
@@ -68,8 +73,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     const handleEnded = () => {
-      setPlayerState('idle');
-      onPause?.();
+      if (isLooping) {
+        // If looping is enabled, restart the song
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play();
+        }
+      } else {
+        setPlayerState('idle');
+        onPause?.();
+      }
     };
 
     const handleCanPlay = () => {
@@ -91,7 +104,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         audioRef.current.removeEventListener('canplay', handleCanPlay);
       }
     };
-  }, []);
+  }, [isLooping]);
 
   const extractS3Info = (s3Uri: string) => {
     console.log('Extracting S3 info from URI:', s3Uri);
@@ -340,6 +353,25 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       });
   };
 
+  const handleSkipNext = () => {
+    if (onSkipNext) {
+      onSkipNext();
+    }
+  };
+
+  const handleSkipPrevious = () => {
+    if (onSkipPrevious) {
+      onSkipPrevious();
+    }
+  };
+
+  const toggleLoop = () => {
+    setIsLooping(!isLooping);
+    if (audioRef.current) {
+      audioRef.current.loop = !isLooping;
+    }
+  };
+
   if (error) {
     return (
       <div className="flex items-center justify-between p-4 bg-spotify-darkgray rounded-lg">
@@ -376,7 +408,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               variant="ghost" 
               size="icon"
               className="spotify-button w-8 h-8 p-0"
-              onClick={() => {/* Previous track logic */}}
+              onClick={handleSkipPrevious}
             >
               <SkipBack className="h-5 w-5" />
             </Button>
@@ -385,9 +417,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               variant="ghost"
               size="icon"
               className="spotify-button w-10 h-10 p-0"
-              onClick={() => {/* Next track logic */}}
+              onClick={handleSkipNext}
             >
               <SkipForward className="h-5 w-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`spotify-button w-8 h-8 p-0 ${isLooping ? 'text-spotify-green' : ''}`}
+              onClick={toggleLoop}
+            >
+              <RotateCcw className="h-5 w-5" />
             </Button>
           </div>
 

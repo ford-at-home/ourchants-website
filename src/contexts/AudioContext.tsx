@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { Song } from '@/types/song';
-import { AudioPlayer } from '@/components/AudioPlayer';
+import { Song } from '../types/song';
+import { AudioPlayer } from '../components/AudioPlayer';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSongs } from '../services/songApi';
 
 interface AudioContextType {
   selectedSong: Song | null;
@@ -10,6 +12,8 @@ interface AudioContextType {
   handlePlay: () => void;
   handlePause: () => void;
   resumeFromTimestamp: (timestamp: number) => void;
+  handleSkipNext: () => void;
+  handleSkipPrevious: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -18,6 +22,11 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [shouldPlay, setShouldPlay] = useState(false);
   const [resumeTimestamp, setResumeTimestamp] = useState<number | null>(null);
+
+  const { data: songs = [] } = useQuery<Song[]>({
+    queryKey: ['songs'],
+    queryFn: fetchSongs,
+  });
 
   const handlePlay = useCallback(() => {
     setShouldPlay(true);
@@ -32,6 +41,32 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setShouldPlay(true);
   }, []);
 
+  const handleSkipNext = useCallback(() => {
+    if (!selectedSong || !songs.length) return;
+    
+    const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
+    if (currentIndex === -1) return;
+    
+    const nextIndex = (currentIndex + 1) % songs.length;
+    const nextSong = songs[nextIndex];
+    
+    setSelectedSong(nextSong);
+    setShouldPlay(true);
+  }, [selectedSong, songs]);
+
+  const handleSkipPrevious = useCallback(() => {
+    if (!selectedSong || !songs.length) return;
+    
+    const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
+    if (currentIndex === -1) return;
+    
+    const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
+    const prevSong = songs[prevIndex];
+    
+    setSelectedSong(prevSong);
+    setShouldPlay(true);
+  }, [selectedSong, songs]);
+
   return (
     <AudioContext.Provider value={{ 
       selectedSong, 
@@ -40,7 +75,9 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setShouldPlay,
       handlePlay,
       handlePause,
-      resumeFromTimestamp
+      resumeFromTimestamp,
+      handleSkipNext,
+      handleSkipPrevious
     }}>
       {children}
       <AudioPlayer 
@@ -51,7 +88,9 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         onPlay={handlePlay}
         onPause={handlePause}
         shouldPlay={shouldPlay}
-        initialTimestamp={resumeTimestamp}
+        initialTimestamp={resumeTimestamp || undefined}
+        onSkipNext={handleSkipNext}
+        onSkipPrevious={handleSkipPrevious}
       />
     </AudioContext.Provider>
   );
