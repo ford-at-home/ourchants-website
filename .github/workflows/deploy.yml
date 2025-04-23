@@ -13,7 +13,7 @@ env:
   BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
   CF_DISTRO_ID: ${{ secrets.CF_DISTRO_ID }}
   API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
-  DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+  DOMAIN_NAME: ourchants.com
 
 jobs:
   deploy:
@@ -57,17 +57,10 @@ jobs:
           --query "DistributionConfig.Origins.Items[0].DomainName" \
           --output text | sed 's|.s3-website-us-east-1.amazonaws.com||')
         
-        # Get domain name from OurChantsFrontendStack
-        DOMAIN_NAME=$(aws cloudformation describe-stacks \
-          --stack-name "OurChantsFrontendStack" \
-          --query "Stacks[0].Parameters[?ParameterKey=='DomainName'].ParameterValue | [0]" \
-          --output text)
-        
         # Export for use in subsequent steps
         echo "API_ENDPOINT=$API_ENDPOINT" >> $GITHUB_ENV
         echo "CF_DISTRO_ID=$CF_DISTRO_ID" >> $GITHUB_ENV
         echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
-        echo "DOMAIN_NAME=$DOMAIN_NAME" >> $GITHUB_ENV
 
     - name: 🧪 Inject build-time secrets into .env
       run: |
