@@ -8,6 +8,8 @@ import { Spinner } from './ui/spinner';
 import { createSongUrl } from '../utils/urlParams';
 import { toast } from 'sonner';
 
+type LoopMode = 'off' | 'all' | 'one';
+
 interface AudioPlayerProps {
   s3Uri: string;
   title?: string;
@@ -49,7 +51,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const prevS3UriRef = useRef<string | null>(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [isLooping, setIsLooping] = useState(false);
+  const [loopMode, setLoopMode] = useState<LoopMode>('off');
   const MAX_RETRIES = 3;
 
   // Initialize audio element only once
@@ -73,13 +75,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     const handleEnded = () => {
-      if (isLooping) {
-        // If looping is enabled, restart the song
+      if (loopMode === 'one') {
+        // If looping one song, restart the current song
         if (audioRef.current) {
           audioRef.current.currentTime = 0;
           audioRef.current.play();
         }
+      } else if (loopMode === 'all') {
+        // If looping all, play the next song
+        onSkipNext?.();
       } else {
+        // If no loop, stop playback
         setPlayerState('idle');
         onPause?.();
       }
@@ -104,7 +110,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         audioRef.current.removeEventListener('canplay', handleCanPlay);
       }
     };
-  }, [isLooping]);
+  }, [loopMode, onSkipNext, onPause]);
 
   const extractS3Info = (s3Uri: string) => {
     console.log('Extracting S3 info from URI:', s3Uri);
@@ -366,10 +372,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const toggleLoop = () => {
-    setIsLooping(!isLooping);
+    const modes: LoopMode[] = ['off', 'all', 'one'];
+    const currentIndex = modes.indexOf(loopMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    const newMode = modes[nextIndex];
+    setLoopMode(newMode);
+    
     if (audioRef.current) {
-      audioRef.current.loop = !isLooping;
+      audioRef.current.loop = newMode === 'one';
     }
+  };
+
+  const getLoopButtonClass = () => {
+    const baseClass = "spotify-button w-8 h-8 p-0";
+    if (loopMode === 'off') return baseClass;
+    return `${baseClass} text-spotify-green`;
   };
 
   if (error) {
@@ -425,10 +442,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className={`spotify-button w-8 h-8 p-0 ${isLooping ? 'text-spotify-green' : ''}`}
+              className={getLoopButtonClass()}
               onClick={toggleLoop}
             >
-              <RotateCcw className="h-5 w-5" />
+              <div className="relative">
+                <RotateCcw className="h-5 w-5" />
+                {loopMode === 'one' && (
+                  <span className="absolute -top-1 -right-1 text-xs font-bold">1</span>
+                )}
+              </div>
             </Button>
           </div>
 
