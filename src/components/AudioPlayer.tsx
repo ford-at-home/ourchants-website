@@ -56,6 +56,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   // Initialize audio element only once
   useEffect(() => {
+    console.log('AudioPlayer: Initializing audio element', { loopMode });
     const audio = new Audio();
     audio.volume = volume;
     audio.crossOrigin = "anonymous";
@@ -75,17 +76,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     const handleEnded = () => {
+      console.log('AudioPlayer: Song ended', { loopMode, currentTime: audioRef.current?.currentTime });
       if (loopMode === 'one') {
         // If looping one song, restart the current song
         if (audioRef.current) {
+          console.log('AudioPlayer: Restarting current song (loop one)');
           audioRef.current.currentTime = 0;
           audioRef.current.play();
         }
       } else if (loopMode === 'all') {
         // If looping all, play the next song
+        console.log('AudioPlayer: Playing next song (loop all)');
         onSkipNext?.();
       } else {
         // If no loop, stop playback
+        console.log('AudioPlayer: Stopping playback (no loop)');
         setPlayerState('idle');
         onPause?.();
       }
@@ -373,10 +378,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const toggleLoop = () => {
+    console.log('AudioPlayer: Toggling loop mode', { currentMode: loopMode });
     const modes: LoopMode[] = ['off', 'all', 'one'];
     const currentIndex = modes.indexOf(loopMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     const newMode = modes[nextIndex];
+    console.log('AudioPlayer: Setting new loop mode', { newMode });
     setLoopMode(newMode);
   };
 
