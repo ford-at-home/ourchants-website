@@ -377,10 +377,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const nextIndex = (currentIndex + 1) % modes.length;
     const newMode = modes[nextIndex];
     setLoopMode(newMode);
-    
-    if (audioRef.current) {
-      audioRef.current.loop = newMode === 'one';
-    }
   };
 
   const getLoopButtonClass = () => {
