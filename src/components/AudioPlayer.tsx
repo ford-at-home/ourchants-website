@@ -184,7 +184,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             try {
               await audioRef.current.play();
               setPlayerState('playing');
-              onPlay?.();
             } catch (err) {
               console.error('Failed to play new song:', err);
               if (err instanceof Error && err.name === 'NotAllowedError') {
@@ -217,14 +216,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     setupAudio();
-  }, [s3Uri, initialTimestamp, shouldPlay, onPlay]);
+  }, [s3Uri, initialTimestamp, shouldPlay]);
 
   // Handle play/pause state changes
   useEffect(() => {
-    if (!audioRef.current || !audioUrl) return;
+    console.log('Play state effect', { shouldPlay, s3Uri, audioUrl, playerState });
+    if (!audioRef.current || !audioUrl) {
+      console.log('Skipping play state effect - no audio element or URL');
+      return;
+    }
 
     const handlePlayState = async () => {
-      console.log('AudioPlayer: Play state changed', { shouldPlay, playerState, audioUrl });
+      console.log('AudioPlayer: Play state changed', { shouldPlay, audioUrl });
       
       // Never try to autoplay when loading from a URL
       const isFromUrl = window.location.search.includes('song=');
@@ -232,12 +235,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         return;
       }
 
-      if (shouldPlay && playerState !== 'playing') {
+      if (shouldPlay) {
         try {
           console.log('AudioPlayer: Attempting to play');
           await audioRef.current!.play();
           setPlayerState('playing');
-          onPlay?.();
         } catch (err) {
           console.error('Play failed:', err);
           if (err instanceof Error && err.name === 'NotAllowedError') {
@@ -247,16 +249,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setError('Playback failed');
           setPlayerState('error');
         }
-      } else if (!shouldPlay && playerState === 'playing') {
+      } else {
         console.log('AudioPlayer: Pausing playback');
         audioRef.current!.pause();
         setPlayerState('idle');
-        onPause?.();
       }
     };
 
     handlePlayState();
-  }, [shouldPlay, audioUrl, playerState, onPlay, onPause]);
+  }, [shouldPlay, audioUrl]);
 
   // Save resume state every 5 seconds when playing
   useEffect(() => {
@@ -402,30 +403,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const handlePlayPause = () => {
-    if (playerState === 'playing') {
+    console.log('handlePlayPause called', { shouldPlay, s3Uri, audioUrl });
+    if (shouldPlay) {
       onPause?.();
     } else {
       onPlay?.();
     }
   };
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-between p-4 bg-spotify-darkgray rounded-lg">
-        <div className="flex-1">
-          <p className="text-red-500">{error}</p>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleRetry}
-          className="text-spotify-green hover:text-spotify-green/80"
-        >
-          <RotateCcw className="h-5 w-5" />
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="spotify-player fixed bottom-0 left-0 right-0">
@@ -433,8 +417,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         {/* Song Info */}
         <div className="flex items-center space-x-4 min-w-[200px]">
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground truncate">{title}</span>
-            <span className="text-xs text-muted-foreground truncate">{artist}</span>
+            {error ? (
+              <div className="flex items-center space-x-2">
+                <p className="text-red-500 text-sm">{error}</p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRetry}
+                  className="text-spotify-green hover:text-spotify-green/80"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <span className="text-sm font-medium text-foreground truncate">{title}</span>
+                <span className="text-xs text-muted-foreground truncate">{artist}</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -456,7 +456,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               className="spotify-button w-10 h-10 p-0 text-foreground"
               onClick={handlePlayPause}
             >
-              {playerState === 'playing' ? (
+              {shouldPlay ? (
                 <Pause className="h-5 w-5" />
               ) : (
                 <Play className="h-5 w-5" />
