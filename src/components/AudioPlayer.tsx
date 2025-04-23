@@ -76,13 +76,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     const handleEnded = () => {
-      console.log('AudioPlayer: Song ended', { loopMode, currentTime: audioRef.current?.currentTime });
+      console.log('AudioPlayer: Song ended', { loopMode, currentTime: audioRef.current?.currentTime, shouldPlay });
       if (loopMode === 'one') {
         // If looping one song, restart the current song
         if (audioRef.current) {
           console.log('AudioPlayer: Restarting current song (loop one)');
           audioRef.current.currentTime = 0;
-          audioRef.current.play();
+          // Don't call play() directly, let the play state effect handle it
+          onPlay?.();
         }
       } else if (loopMode === 'all') {
         // If looping all, play the next song
@@ -378,13 +379,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const toggleLoop = () => {
-    console.log('AudioPlayer: Toggling loop mode', { currentMode: loopMode });
+    console.log('AudioPlayer: Toggling loop mode', { currentMode: loopMode, shouldPlay, playerState });
     const modes: LoopMode[] = ['off', 'all', 'one'];
     const currentIndex = modes.indexOf(loopMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     const newMode = modes[nextIndex];
     console.log('AudioPlayer: Setting new loop mode', { newMode });
     setLoopMode(newMode);
+    // Don't change play state when toggling loop
   };
 
   const getLoopButtonClass = () => {
