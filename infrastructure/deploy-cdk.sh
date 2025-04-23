@@ -46,7 +46,7 @@ if [ $# -eq 1 ]; then
     cdk deploy "$1" --require-approval never
 else
     echo "Deploying all stacks"
-    cdk deploy --require-approval never
+    cdk deploy --all --require-approval never
 fi
 
 echo "CDK deployment complete!" 
