@@ -158,6 +158,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             console.log('AudioPlayer: Setting initial timestamp', initialTimestamp);
             audioRef.current.currentTime = initialTimestamp;
           }
+
+          // If shouldPlay is true, start playing the new song
+          if (shouldPlay) {
+            console.log('AudioPlayer: Starting playback of new song');
+            try {
+              await audioRef.current.play();
+              setPlayerState('playing');
+              onPlay?.();
+            } catch (err) {
+              console.error('Failed to play new song:', err);
+              if (err instanceof Error && err.name === 'NotAllowedError') {
+                // Don't show error for autoplay restrictions
+                return;
+              }
+              setError('Playback failed');
+              setPlayerState('error');
+            }
+          }
         }
       } catch (err) {
         console.error('Error setting up audio:', err);
@@ -180,7 +198,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     setupAudio();
-  }, [s3Uri, initialTimestamp]);
+  }, [s3Uri, initialTimestamp, shouldPlay, onPlay]);
 
   // Handle play/pause state changes
   useEffect(() => {
