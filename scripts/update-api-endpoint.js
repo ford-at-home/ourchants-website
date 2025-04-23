@@ -1,8 +1,12 @@
-const fs = require('fs');
-const path = require('path');
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Read the API endpoint from .env
-const envContent = fs.readFileSync('.env', 'utf8');
+const envContent = readFileSync('.env', 'utf8');
 const apiEndpoint = envContent
   .split('\n')
   .find(line => line.startsWith('API_ENDPOINT='))
@@ -14,11 +18,11 @@ if (!apiEndpoint) {
 }
 
 // Define paths
-const templatePath = path.join(__dirname, '../src/services/songApi.template.ts');
-const outputPath = path.join(__dirname, '../src/services/songApi.ts');
+const templatePath = join(__dirname, '../src/services/songApi.template.ts');
+const outputPath = join(__dirname, '../src/services/songApi.ts');
 
 // Create template if it doesn't exist
-if (!fs.existsSync(templatePath)) {
+if (!existsSync(templatePath)) {
   console.log('Creating songApi.template.ts...');
   const templateContent = `import { Song } from "@/types/song";
 
@@ -107,25 +111,25 @@ export const updateSongWithRetry = async (
 };`;
 
   // Ensure directory exists
-  const dir = path.dirname(templatePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  const dir = dirname(templatePath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
   }
 
-  fs.writeFileSync(templatePath, templateContent);
+  writeFileSync(templatePath, templateContent);
   console.log('✅ Created songApi.template.ts');
 }
 
 // Read the template file
-const templateContent = fs.readFileSync(templatePath, 'utf8');
+const templateContent = readFileSync(templatePath, 'utf8');
 const updatedContent = templateContent.replace('API_ENDPOINT_PLACEHOLDER', apiEndpoint);
 
 // Ensure output directory exists
-const outputDir = path.dirname(outputPath);
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true });
+const outputDir = dirname(outputPath);
+if (!existsSync(outputDir)) {
+  mkdirSync(outputDir, { recursive: true });
 }
 
 // Write the updated file
-fs.writeFileSync(outputPath, updatedContent);
+writeFileSync(outputPath, updatedContent);
 console.log('✅ Updated songApi.ts with API endpoint'); 
