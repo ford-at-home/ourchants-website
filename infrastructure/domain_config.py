@@ -13,6 +13,7 @@ from aws_cdk import (
     aws_route53_targets as targets,
     aws_cloudfront as cloudfront,
     Stack,
+    RemovalPolicy,
 )
 from constructs import Construct
 
@@ -40,15 +41,22 @@ class DomainConfig:
 
     def configure_cloudfront(self, distribution: cloudfront.Distribution):
         """Configure CloudFront distribution with custom domain."""
-        # Create Route53 A record
-        route53.ARecord(
-            self.stack,
-            "AliasRecord",
-            zone=self.hosted_zone,
-            target=route53.RecordTarget.from_alias(
-                targets.CloudFrontTarget(distribution)
+        try:
+            # Create Route53 A record
+            route53.ARecord(
+                self.stack,
+                "AliasRecord",
+                zone=self.hosted_zone,
+                target=route53.RecordTarget.from_alias(
+                    targets.CloudFrontTarget(distribution)
+                ),
+                removal_policy=RemovalPolicy.RETAIN  # Keep the record if stack is destroyed
             )
-        )
+        except Exception as e:
+            if "already exists" in str(e):
+                print(f"Note: A record for {self.domain_name} already exists, skipping creation")
+            else:
+                raise e
         
         return {
             'certificate': self.certificate,
