@@ -55,20 +55,29 @@ run() {
 # =============================
 divider "CloudFront Distribution Lookup"
 
+echo "🔍 Looking for CloudFront distribution with S3 origin: ${BUCKET_NAME}.s3.amazonaws.com"
+echo "Running: aws cloudfront list-distributions --query \"DistributionList.Items[?Origins.Items[0].DomainName=='${BUCKET_NAME}.s3.amazonaws.com'].Id | [0]\" --output text"
 DISTRIBUTION_ID=$(aws cloudfront list-distributions \
   --query "DistributionList.Items[?Origins.Items[0].DomainName=='${BUCKET_NAME}.s3.amazonaws.com'].Id | [0]" \
   --output text 2>/dev/null)
+echo "Result: $DISTRIBUTION_ID"
 
 if [[ "$DISTRIBUTION_ID" == "None" || -z "$DISTRIBUTION_ID" ]]; then
-  echo "🔍 Trying CloudFormation stack lookup..."
+  echo "🔍 Trying CloudFormation stack lookup in stack: $STACK_NAME"
+  echo "Running: aws cloudformation describe-stack-resources --stack-name \"$STACK_NAME\" --query \"StackResources[?ResourceType=='AWS::CloudFront::Distribution'].PhysicalResourceId | [0]\" --output text"
   DISTRIBUTION_ID=$(aws cloudformation describe-stack-resources \
     --stack-name "$STACK_NAME" \
     --query "StackResources[?ResourceType=='AWS::CloudFront::Distribution'].PhysicalResourceId | [0]" \
     --output text)
+  echo "Result: $DISTRIBUTION_ID"
 fi
 
 if [[ "$DISTRIBUTION_ID" == "None" || -z "$DISTRIBUTION_ID" ]]; then
-  echo "⚠️  No CloudFront distribution found. Skipping CloudFront detail checks."
+  echo "⚠️  No CloudFront distribution found. This could mean:"
+  echo "    1. The distribution hasn't been created yet"
+  echo "    2. The distribution exists with a different configuration"
+  echo "    3. AWS credentials don't have permission to list distributions"
+  echo "    Continuing with other checks..."
   DISTRIBUTION_ID=""
 else
   echo "✅ Found CloudFront distribution: $DISTRIBUTION_ID"
@@ -79,6 +88,7 @@ fi
 # =============================
 divider "API Gateway ($API_ID)"
 
+echo "Checking API Gateway configuration..."
 run "aws apigatewayv2 get-api --api-id $API_ID"
 run "aws apigatewayv2 get-api --api-id $API_ID --query 'CorsConfiguration'"
 run "aws apigatewayv2 get-stages --api-id $API_ID"
@@ -91,6 +101,7 @@ run "aws apigatewayv2 get-routes --api-id $API_ID"
 # =============================
 divider "S3 Bucket: $BUCKET_NAME"
 
+echo "Checking S3 bucket configuration..."
 run "aws s3api get-bucket-website --bucket $BUCKET_NAME"
 run "aws s3api get-bucket-cors --bucket $BUCKET_NAME"
 run "aws s3api get-bucket-policy --bucket $BUCKET_NAME --query 'Policy' --output text"
@@ -104,6 +115,7 @@ run "aws s3api get-public-access-block --bucket $BUCKET_NAME"
 if [[ -n "$DISTRIBUTION_ID" ]]; then
   divider "CloudFront Distribution: $DISTRIBUTION_ID"
 
+  echo "Checking CloudFront distribution configuration..."
   run "aws cloudfront get-distribution --id $DISTRIBUTION_ID --query 'Distribution.Status'"
   run "aws cloudfront get-distribution --id $DISTRIBUTION_ID --query 'Distribution.DistributionConfig'"
   run "aws cloudfront get-distribution --id $DISTRIBUTION_ID --query 'Distribution.DistributionConfig.Origins'"
@@ -118,6 +130,7 @@ fi
 # =============================
 divider "Network: Curl API Checks"
 
+echo "Testing API endpoints..."
 run "curl -v https://$API_ID.execute-api.us-east-1.amazonaws.com/songs"
 run "curl -v -H \"Origin: http://localhost:3000\" -H \"Access-Control-Request-Method: GET\" -X OPTIONS https://$API_ID.execute-api.us-east-1.amazonaws.com/songs"
 
@@ -126,6 +139,7 @@ run "curl -v -H \"Origin: http://localhost:3000\" -H \"Access-Control-Request-Me
 # =============================
 divider "CloudWatch Logs"
 
+echo "Checking CloudWatch log groups..."
 run "aws logs describe-log-groups --log-group-name-prefix '/aws/apigateway'"
 run "aws logs describe-log-groups --log-group-name-prefix '/aws/lambda'"
 

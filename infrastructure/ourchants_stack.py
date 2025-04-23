@@ -215,7 +215,7 @@ class OurChantsStack(Stack):
         if domain_name:
             try:
                 domain_config = DomainConfig(self, domain_name)
-                domain_config.create_a_record(distribution)
+                domain_config.configure_cloudfront(distribution)
             except Exception as e:
                 print(f"Warning: Could not configure Route53 record: {str(e)}")
                 print("If the record already exists, you can ignore this warning.")

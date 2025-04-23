@@ -14,6 +14,59 @@ build:
 	npm run lint
 	npm run test
 
+# Authentication Setup
+.PHONY: auth
+auth:
+	@echo "🔐 Setting up GitHub Actions authentication..."
+	@if [ ! -f .env ]; then \
+		echo "Error: .env file not found"; \
+		exit 1; \
+	fi
+
+	@# Check for AWS credentials
+	@if [ ! -f ~/.aws/credentials ]; then \
+		echo "Error: AWS credentials not found. Please run 'aws configure' first."; \
+		exit 1; \
+	fi
+
+	@# Get AWS credentials
+	@AWS_ACCESS_KEY_ID=$$(aws configure get aws_access_key_id); \
+	AWS_SECRET_ACCESS_KEY=$$(aws configure get aws_secret_access_key); \
+	if [ -z "$$AWS_ACCESS_KEY_ID" ] || [ -z "$$AWS_SECRET_ACCESS_KEY" ]; then \
+		echo "Error: Could not get AWS credentials from aws configure"; \
+		exit 1; \
+	fi
+
+	@# Get API endpoint
+	@API_ENDPOINT=$$(grep API_ENDPOINT .env | cut -d '=' -f2); \
+	if [ -z "$$API_ENDPOINT" ]; then \
+		echo "Error: API_ENDPOINT not found in .env file"; \
+		exit 1; \
+	fi
+
+	@# Check if GitHub CLI is installed
+	@if ! command -v gh &> /dev/null; then \
+		echo "Error: GitHub CLI (gh) is not installed. Please install it first."; \
+		exit 1; \
+	fi
+
+	@# Check if GitHub CLI is authenticated
+	@if ! gh auth status &> /dev/null; then \
+		echo "Error: GitHub CLI is not authenticated. Please run 'gh auth login' first."; \
+		exit 1; \
+	fi
+
+	@echo "📝 Setting up GitHub secrets..."
+	@echo "$$AWS_ACCESS_KEY_ID" | gh secret set AWS_ACCESS_KEY_ID || { echo "Error: Failed to set AWS_ACCESS_KEY_ID"; exit 1; }
+	@echo "$$AWS_SECRET_ACCESS_KEY" | gh secret set AWS_SECRET_ACCESS_KEY || { echo "Error: Failed to set AWS_SECRET_ACCESS_KEY"; exit 1; }
+	@echo "$$API_ENDPOINT" | gh secret set API_ENDPOINT || { echo "Error: Failed to set API_ENDPOINT"; exit 1; }
+	@echo "✅ GitHub secrets set successfully!"
+
+	@# Deploy OIDC stack
+	@echo "🔄 Deploying GitHub OIDC stack..."
+	@cd infrastructure && ./deploy-cdk.sh GitHubOidcDeploymentRoleStack
+	@echo "✅ OIDC stack deployed successfully!"
+
 # Full Deployment
 .PHONY: deploy
 deploy: build
@@ -43,27 +96,22 @@ deploy: build
 	@echo "📦 Deploying to S3..."
 	aws s3 sync dist/ s3://$(BUCKET_NAME) --delete
 
-	@# Invalidate CloudFront cache and wait for completion
+	@# Invalidate CloudFront cache
 	@echo "🔄 Invalidating CloudFront cache..."
 	@INVALIDATION_ID=$$(aws cloudfront create-invalidation --distribution-id "$(CF_DISTRO_ID)" --paths "/*" --query 'Invalidation.Id' --output text); \
 	if [ -z "$$INVALIDATION_ID" ]; then \
-		echo "Error: Failed to create CloudFront invalidation"; \
-		exit 1; \
-	fi; \
-	echo "Created invalidation: $$INVALIDATION_ID"
-	
-	@echo "⏳ Waiting for invalidation to complete..."
-	@aws cloudfront wait invalidation-completed --distribution-id "$(CF_DISTRO_ID)" --id "$$INVALIDATION_ID" || { \
-		echo "Error: CloudFront invalidation failed or timed out"; \
-		exit 1; \
-	}
-	@echo "✅ CloudFront cache invalidation completed"
+		echo "Warning: Failed to create CloudFront invalidation, but deployment completed"; \
+	else \
+		echo "Created invalidation: $$INVALIDATION_ID"; \
+		echo "Note: Cache invalidation may take a few minutes to complete"; \
+	fi
 
 	@# Deploy infrastructure
 	@echo "🏗️  Deploying infrastructure..."
 	@cd infrastructure && ./deploy-cdk.sh
 
 	@echo "✅ Deployment complete! Site should be available at https://$(DOMAIN_NAME)"
+	@echo "Note: If you don't see your changes immediately, wait a few minutes for CloudFront cache to clear"
 
 # Diagnostics
 .PHONY: diagnose
@@ -84,6 +132,7 @@ help:
 	@echo "Available commands:"
 	@echo "  make build   - Build, lint, and test the project"
 	@echo "  make deploy  - Full deployment (build, deploy, infrastructure)"
+	@echo "  make auth    - Set up GitHub Actions authentication"
 	@echo "  make diagnose - Run network diagnostics"
 	@echo "  make clean   - Clean build files and dependencies"
 	@echo ""

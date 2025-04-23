@@ -1,29 +1,29 @@
+#!/usr/bin/env python3
 """
 CDK application entry point for OurChants frontend infrastructure.
 
 This file:
 - Initializes the CDK app
 - Creates the OurChants frontend stack
-- Uses the existing deployed stacks' outputs
+- Creates the GitHub OIDC deployment role stack
 """
 
-#!/usr/bin/env python3
 import os
-from aws_cdk import App
+from aws_cdk import App, Environment
 from ourchants_stack import OurChantsStack
+from github_oidc_stack import GitHubOidcDeploymentRoleStack
 
-# Initialize the CDK app
 app = App()
 
-# Create the stack using existing deployed stacks' outputs
-OurChantsStack(
-    app,
-    "OurChantsFrontendStack",
-    env={
-        "account": os.environ.get("CDK_DEFAULT_ACCOUNT"),
-        "region": os.environ.get("CDK_DEFAULT_REGION", "us-east-1"),
-    },
+env = Environment(
+    account=os.environ.get("CDK_DEFAULT_ACCOUNT"),
+    region=os.environ.get("CDK_DEFAULT_REGION", "us-east-1")
 )
 
-# Synthesize the CloudFormation template
+# Main site + infrastructure
+OurChantsStack(app, "OurChantsFrontendStack", env=env)
+
+# GitHub OIDC deployment role stack
+GitHubOidcDeploymentRoleStack(app, "GitHubOidcDeploymentRoleStack", env=env)
+
 app.synth()
