@@ -56,7 +56,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   // Initialize audio element only once
   useEffect(() => {
-    console.log('AudioPlayer: Initializing audio element', { loopMode });
+    console.log('AudioPlayer: Initializing audio element');
     const audio = new Audio();
     audio.volume = volume;
     audio.crossOrigin = "anonymous";
@@ -75,6 +75,29 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       }
     };
 
+    const handleCanPlay = () => {
+      setLoadingState('ready');
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        audioRef.current.removeEventListener('canplay', handleCanPlay);
+      }
+    };
+  }, []);
+
+  // Handle loop mode changes separately
+  useEffect(() => {
+    if (!audioRef.current) return;
+
     const handleEnded = () => {
       console.log('AudioPlayer: Song ended', { loopMode, currentTime: audioRef.current?.currentTime, shouldPlay });
       if (loopMode === 'one') {
@@ -82,8 +105,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         if (audioRef.current) {
           console.log('AudioPlayer: Restarting current song (loop one)');
           audioRef.current.currentTime = 0;
-          // Don't call play() directly, let the play state effect handle it
-          onPlay?.();
+          audioRef.current.play();
         }
       } else if (loopMode === 'all') {
         // If looping all, play the next song
@@ -97,23 +119,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       }
     };
 
-    const handleCanPlay = () => {
-      setLoadingState('ready');
-    };
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('canplay', handleCanPlay);
-
+    audioRef.current.addEventListener('ended', handleEnded);
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
         audioRef.current.removeEventListener('ended', handleEnded);
-        audioRef.current.removeEventListener('canplay', handleCanPlay);
       }
     };
   }, [loopMode, onSkipNext, onPause]);
