@@ -386,7 +386,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const getLoopButtonClass = () => {
     const baseClass = "spotify-button w-8 h-8 p-0";
     if (loopMode === 'off') return `${baseClass} text-muted-foreground hover:text-foreground`;
-    return `${baseClass} text-spotify-green hover:text-spotify-green/80`;
+    return `${baseClass} text-foreground`;
   };
 
   const getLoopIcon = () => {
@@ -395,7 +395,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         return (
           <div className="relative">
             <Repeat className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 text-xs font-bold bg-spotify-green text-black rounded-full w-4 h-4 flex items-center justify-center">1</span>
+            <span className="absolute -top-1 -right-1 text-xs font-bold bg-foreground text-background rounded-full w-4 h-4 flex items-center justify-center">1</span>
           </div>
         );
       case 'all':
@@ -448,7 +448,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <Button 
               variant="ghost" 
               size="icon"
-              className="spotify-button w-8 h-8 p-0 text-muted-foreground hover:text-foreground"
+              className="spotify-button w-8 h-8 p-0 text-foreground"
               onClick={handleSkipPrevious}
             >
               <SkipBack className="h-5 w-5" />
@@ -457,7 +457,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="spotify-button w-10 h-10 p-0 text-muted-foreground hover:text-foreground"
+              className="spotify-button w-10 h-10 p-0 text-foreground"
               onClick={handlePlayPause}
             >
               {playerState === 'playing' ? (
@@ -470,7 +470,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="spotify-button w-8 h-8 p-0 text-muted-foreground hover:text-foreground"
+              className="spotify-button w-8 h-8 p-0 text-foreground"
               onClick={handleSkipNext}
             >
               <SkipForward className="h-5 w-5" />
