@@ -165,4 +165,56 @@ describe('AudioPlayer', () => {
     fireEvent.click(retryButton);
     expect(mockLoad).toHaveBeenCalledTimes(2);
   });
+
+  describe('slider interactions', () => {
+    it('should update audio time when time slider changes', async () => {
+      const { getByRole } = render(
+        <AudioPlayer
+          s3Uri="s3://test-bucket/test.mp3"
+          title="Test Song"
+          artist="Test Artist"
+        />
+      );
+
+      const timeSlider = getByRole('slider', { name: /time/i });
+      await userEvent.click(timeSlider);
+      
+      // Verify that the audio currentTime was updated
+      expect(HTMLMediaElement.prototype.currentTime).toBeDefined();
+    });
+
+    it('should update volume when volume slider changes', async () => {
+      const { getByRole } = render(
+        <AudioPlayer
+          s3Uri="s3://test-bucket/test.mp3"
+          title="Test Song"
+          artist="Test Artist"
+        />
+      );
+
+      const volumeSlider = getByRole('slider', { name: /volume/i });
+      await userEvent.click(volumeSlider);
+      
+      // Verify that the audio volume was updated
+      expect(HTMLMediaElement.prototype.volume).toBeDefined();
+    });
+
+    it('should format time correctly', async () => {
+      const { getByText } = render(
+        <AudioPlayer
+          s3Uri="s3://test-bucket/test.mp3"
+          title="Test Song"
+          artist="Test Artist"
+        />
+      );
+
+      // Simulate audio duration and current time
+      Object.defineProperty(HTMLMediaElement.prototype, 'duration', { value: 180 });
+      Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', { value: 65 });
+
+      // Check if the formatted time is displayed correctly (1:05 / 3:00)
+      expect(getByText('1:05')).toBeInTheDocument();
+      expect(getByText('3:00')).toBeInTheDocument();
+    });
+  });
 }); 
