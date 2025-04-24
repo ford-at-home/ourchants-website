@@ -22,7 +22,9 @@ export const SongDetails: React.FC = () => {
     return <div>Error loading song details</div>;
   }
 
-  const song = data?.items?.find(s => s.song_id === id);
+  // Ensure data.items is an array before using find
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const song = items.find(s => s.song_id === id);
 
   if (!song) {
     return <div>Song not found</div>;

@@ -356,15 +356,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }, [playerState, songId]);
 
   const handleTimeChange = (value: number[]) => {
-    if (!audioRef.current) return;
+    const currentAudioElement = audioRef.current;
+    if (!currentAudioElement) return;
     console.log('Seeking to:', value[0]);
-    audioRef.current.currentTime = value[0];
+    currentAudioElement.currentTime = value[0];
   };
 
   const handleVolumeChange = (value: number[]) => {
-    if (!audioRef.current) return;
+    const currentAudioElement = audioRef.current;
+    if (!currentAudioElement) return;
     console.log('Setting volume to:', value[0]);
-    audioRef.current.volume = value[0] / 100;
+    currentAudioElement.volume = value[0] / 100;
     setVolume(value[0] / 100);
   };
 
@@ -382,6 +384,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       case 'loading':
         return 'Loading...';
       case 'ready':
+      case 'loaded':
         return title || 'Now Playing';
       case 'error':
         return 'Error Loading Audio';
@@ -505,16 +508,19 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           const s3Info = extractS3Info(s3Uri);
           const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
           
-          if (audioRef.current) {
-            audioRef.current.src = response.url;
-            audioRef.current.load();
-            setAudioUrl(response.url);
-            setLoadingState('ready');
-            
-            if (shouldPlay) {
-              await audioRef.current.play();
-              setPlayerState('playing');
-            }
+          const currentAudioElement = audioRef.current;
+          if (!currentAudioElement) {
+            throw new Error('Audio element not initialized');
+          }
+          
+          currentAudioElement.src = response.url;
+          currentAudioElement.load();
+          setAudioUrl(response.url);
+          setLoadingState('ready');
+          
+          if (shouldPlay) {
+            await currentAudioElement.play();
+            setPlayerState('playing');
           }
         } catch (err) {
           console.error('Error retrying audio setup:', err);
