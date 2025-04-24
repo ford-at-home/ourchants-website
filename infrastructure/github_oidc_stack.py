@@ -9,9 +9,8 @@ class GitHubOidcDeploymentRoleStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs):
         super().__init__(scope, construct_id, **kwargs)
 
-        role_name = "github-actions-ourchants-deploy"
+        role_name = "github-actions-ourchants-website-deploy"
         github_repo = "ford-at-home/ourchants-website"
-        branch = "main"
 
         oidc_provider = iam.OpenIdConnectProvider(
             self, "GitHubOIDCProvider",
@@ -26,8 +25,10 @@ class GitHubOidcDeploymentRoleStack(Stack):
                 oidc_provider.open_id_connect_provider_arn,
                 conditions={
                     "StringEquals": {
-                        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                        "token.actions.githubusercontent.com:sub": f"repo:{github_repo}:ref:refs/heads/{branch}"
+                        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                    },
+                    "StringLike": {
+                        "token.actions.githubusercontent.com:sub": f"repo:{github_repo}:*"
                     }
                 },
                 assume_role_action="sts:AssumeRoleWithWebIdentity"
