@@ -1,3 +1,4 @@
+[![Deploy OurChants via Makefile](https://github.com/ford-at-home/ourchants-website/actions/workflows/deploy.yml/badge.svg)](https://github.com/ford-at-home/ourchants-website/actions/workflows/deploy.yml)
 # OurChants Website
 
 A modern web application for exploring and listening to sacred chants, built with React and deployed on AWS.
