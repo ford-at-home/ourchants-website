@@ -1,5 +1,4 @@
 import React from 'react';
-import { MusicPlayer } from "../components/MusicPlayer";
 import { SongList } from "../components/SongList";
 import { BookAudio } from "lucide-react";
 
@@ -19,7 +18,6 @@ const Index: React.FC = () => {
       <main className="mt-6">
         <SongList />
       </main>
-      <MusicPlayer />
     </div>
   );
 };

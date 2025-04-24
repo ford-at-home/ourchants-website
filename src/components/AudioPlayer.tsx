@@ -186,35 +186,53 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         currentAudio.src = '';
         currentAudio.load();
 
+        setLoadingState('loading');
+        setError(null);
+        setCurrentTime(0);
+
+        // Extract S3 info with enhanced validation
         const s3Info = extractS3Info(s3Uri);
         console.log('AudioPlayer - Getting presigned URL for:', s3Info);
-        const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
-        
-        currentAudio.src = response.url;
-        currentAudio.load();
-        setAudioUrl(response.url);
-        setLoadingState('ready');
-        setError(null);
-        
-        if (validatedTimestamp > 0) {
-          currentAudio.currentTime = validatedTimestamp;
-        }
 
-        if (shouldPlay) {
-          try {
-            await currentAudio.play();
-            setPlayerState('playing');
-            onPlayStarted?.();
-          } catch (err) {
-            if (err instanceof Error && err.name === 'NotAllowedError') {
-              return;
-            }
-            const errorMessage = err instanceof Error ? err.message : 'Failed to start playback';
-            setError(errorMessage);
-            setPlayerState('error');
+        try {
+          const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
+          currentAudio.src = response.url;
+          currentAudio.load();
+          setAudioUrl(response.url);
+          setLoadingState('ready');
+          setError(null);
+          
+          if (validatedTimestamp > 0) {
+            currentAudio.currentTime = validatedTimestamp;
           }
+
+          if (shouldPlay) {
+            try {
+              await currentAudio.play();
+              setPlayerState('playing');
+              onPlayStarted?.();
+            } catch (err) {
+              if (err instanceof Error && err.name === 'NotAllowedError') {
+                // User interaction required for autoplay
+                setPlayerState('idle');
+                return;
+              }
+              const errorMessage = err instanceof Error ? err.message : 'Failed to start playback';
+              setError(`Playback error: ${errorMessage}`);
+              setPlayerState('error');
+            }
+          }
+        } catch (err) {
+          // Handle presigned URL fetch errors
+          console.error('AudioPlayer - Error getting presigned URL:', err);
+          const errorMessage = err instanceof Error ? err.message : 'Failed to access audio file';
+          setError(`Access error: ${errorMessage}`);
+          setPlayerState('error');
+          setLoadingState('error');
+          return;
         }
       } catch (err) {
+        // Handle S3 URI validation errors
         console.error('AudioPlayer - Error setting up audio:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to load audio';
         setError(errorMessage);
@@ -274,9 +292,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const extractS3Info = (s3Uri: string) => {
     console.log('Extracting S3 info from URI:', s3Uri);
+    
+    // Validate input
     if (!s3Uri || s3Uri.trim() === '') {
       throw new Error('No S3 URI provided. Please ensure a valid audio file is selected.');
     }
+
+    // Validate format
     if (!s3Uri.startsWith('s3://')) {
       throw new Error('Invalid S3 URI format: URI must start with "s3://"');
     }
@@ -285,14 +307,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const path = s3Uri.slice(5);
     const [bucket, ...keyParts] = path.split('/');
     
+    // Validate bucket
     if (!bucket || bucket.trim() === '') {
       throw new Error('Invalid S3 URI format: bucket name is missing');
     }
     
-    // Join the remaining parts to get the full key
+    // Validate and join key parts
     const key = keyParts.join('/');
     if (!key || key.trim() === '') {
       throw new Error('Invalid S3 URI format: file path is missing');
+    }
+
+    // Validate file extension
+    const validExtensions = ['.mp3', '.wav', '.m4a', '.ogg'];
+    const hasValidExtension = validExtensions.some(ext => key.toLowerCase().endsWith(ext));
+    if (!hasValidExtension) {
+      throw new Error('Invalid file type. Only audio files (mp3, wav, m4a, ogg) are supported.');
     }
     
     console.log('Extracted S3 info:', { bucket, key });
@@ -334,9 +364,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const handleRetry = () => {
     const audioElement = audioRef.current;
     if (!audioElement) return;
-    setRetryCount(0);
+    
+    // Reset all error states
+    setRetryCount(prev => {
+      const newCount = prev + 1;
+      if (newCount >= MAX_RETRIES) {
+        setError('Maximum retry attempts reached. Please try again later or contact support.');
+        return prev;
+      }
+      return newCount;
+    });
+    
     setError(null);
     setLoadingState('loading');
+    setPlayerState('idle');
+    
+    // Attempt to reload the audio
     audioElement.load();
   };
 
