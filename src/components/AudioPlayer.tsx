@@ -71,6 +71,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onSkipNext,
   onSkipPrevious
 }) => {
+  console.log('AudioPlayer - Rendering with props:', {
+    s3Uri,
+    title,
+    artist,
+    songId,
+    shouldPlay,
+    initialTimestamp
+  });
+
   // All state hooks at the top
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [currentTime, setCurrentTime] = useState(0);
@@ -96,6 +105,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   // Initialize audio element
   useEffect(() => {
+    console.log('AudioPlayer - Initializing audio element');
     const audio = new Audio();
     audio.volume = volume;
     audio.crossOrigin = "anonymous";
@@ -164,6 +174,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       return;
     }
 
+    console.log('AudioPlayer - S3 URI changed:', s3Uri);
     prevS3UriRef.current = s3Uri;
     setLoadingState('loading');
     setError(null);
@@ -176,6 +187,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         currentAudio.load();
 
         const s3Info = extractS3Info(s3Uri);
+        console.log('AudioPlayer - Getting presigned URL for:', s3Info);
         const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
         
         currentAudio.src = response.url;
@@ -201,19 +213,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           }
         }
       } catch (err) {
-        console.error('Error setting up audio:', err);
-        if (retryCount < MAX_RETRIES) {
-          setRetryCount(prev => prev + 1);
-        } else {
-          setError('Failed to load audio after multiple attempts. Please try again later.');
-          setLoadingState('error');
-          setPlayerState('error');
-        }
+        console.error('AudioPlayer - Error setting up audio:', err);
+        setError('Failed to load audio');
+        setPlayerState('error');
       }
     };
 
     setupAudio();
-  }, [s3Uri, validatedTimestamp, shouldPlay, onPlayStarted, retryCount]);
+  }, [s3Uri, shouldPlay, validatedTimestamp, onPlayStarted]);
 
   // Handle play/pause state changes
   useEffect(() => {
