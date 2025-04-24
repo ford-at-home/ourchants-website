@@ -57,14 +57,29 @@ function AppContent() {
 
   const { data: songs } = useQuery({
     queryKey: ['songs'],
-    queryFn: fetchSongs,
+    queryFn: () => {
+      console.log('App - Fetching songs');
+      return fetchSongs();
+    }
+  });
+
+  console.log('App - Songs data:', {
+    data: songs,
+    dataType: songs ? typeof songs : 'undefined',
+    itemsType: songs?.items ? typeof songs.items : 'undefined',
+    isArray: Array.isArray(songs?.items),
+    itemsLength: songs?.items?.length
   });
 
   useEffect(() => {
     // Check for shared song URL first
     const sharedSong = getSongFromUrl();
     if (sharedSong && songs) {
-      const song = songs.find(s => s.song_id === sharedSong.songId);
+      console.log('App - Looking for shared song:', {
+        sharedSong,
+        songs
+      });
+      const song = songs.items?.find(s => s.song_id === sharedSong.songId);
       if (song) {
         setSelectedSong(song);
         if (sharedSong.timestamp) {
@@ -78,7 +93,11 @@ function AppContent() {
     const resumeState = getResumeState();
     if (!resumeState || !songs) return;
 
-    const song = songs.find(s => s.song_id === resumeState.songId);
+    console.log('App - Looking for resume song:', {
+      resumeState,
+      songs
+    });
+    const song = songs.items?.find(s => s.song_id === resumeState.songId);
     if (song) {
       setResumeSong({
         id: song.song_id,
@@ -93,9 +112,12 @@ function AppContent() {
 
   const handleResume = () => {
     if (resumeSong && songs) {
-      setSelectedSong(songs.find(s => s.song_id === resumeSong.id)!);
-      resumeFromTimestamp(resumeSong.timestamp);
-      setShowResumeDialog(false);
+      const song = songs.items?.find(s => s.song_id === resumeSong.id);
+      if (song) {
+        setSelectedSong(song);
+        resumeFromTimestamp(resumeSong.timestamp);
+        setShowResumeDialog(false);
+      }
     }
   };
 
