@@ -194,6 +194,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         currentAudio.load();
         setAudioUrl(response.url);
         setLoadingState('ready');
+        setError(null);
         
         if (validatedTimestamp > 0) {
           currentAudio.currentTime = validatedTimestamp;
@@ -208,14 +209,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             if (err instanceof Error && err.name === 'NotAllowedError') {
               return;
             }
-            setError('Playback failed');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to start playback';
+            setError(errorMessage);
             setPlayerState('error');
           }
         }
       } catch (err) {
         console.error('AudioPlayer - Error setting up audio:', err);
-        setError('Failed to load audio');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load audio';
+        setError(errorMessage);
         setPlayerState('error');
+        setLoadingState('error');
       }
     };
 
@@ -270,25 +274,25 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const extractS3Info = (s3Uri: string) => {
     console.log('Extracting S3 info from URI:', s3Uri);
-    if (!s3Uri) {
-      throw new Error('S3 URI is required');
+    if (!s3Uri || s3Uri.trim() === '') {
+      throw new Error('No S3 URI provided. Please ensure a valid audio file is selected.');
     }
     if (!s3Uri.startsWith('s3://')) {
-      throw new Error('Invalid S3 URI format: must start with s3://');
+      throw new Error('Invalid S3 URI format: URI must start with "s3://"');
     }
     
     // Remove 's3://' and split by first '/'
     const path = s3Uri.slice(5);
     const [bucket, ...keyParts] = path.split('/');
     
-    if (!bucket) {
-      throw new Error('Invalid S3 URI format: bucket name is required');
+    if (!bucket || bucket.trim() === '') {
+      throw new Error('Invalid S3 URI format: bucket name is missing');
     }
     
     // Join the remaining parts to get the full key
     const key = keyParts.join('/');
-    if (!key) {
-      throw new Error('Invalid S3 URI format: key is required');
+    if (!key || key.trim() === '') {
+      throw new Error('Invalid S3 URI format: file path is missing');
     }
     
     console.log('Extracted S3 info:', { bucket, key });
