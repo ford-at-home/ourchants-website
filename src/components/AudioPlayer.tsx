@@ -285,7 +285,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
     switch (loadingState) {
       case 'loading':
-        return 'Loading...';
+        return 'Preparing...';
       case 'ready':
       case 'loaded':
         return title || 'Now Playing';
@@ -428,6 +428,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                   onClick={handleRetry}
                   className="text-spotify-green hover:text-spotify-green/80"
                   data-testid="retry-button"
+                  aria-label="Retry loading audio"
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
@@ -449,6 +450,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               size="icon"
               className="spotify-button w-8 h-8 p-0 text-foreground"
               onClick={handleSkipPrevious}
+              aria-label="Previous track"
             >
               <SkipBack className="h-5 w-5" />
             </Button>
@@ -458,9 +460,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               size="icon"
               className="spotify-button w-10 h-10 p-0 text-foreground"
               onClick={handlePlayPause}
-              aria-label={shouldPlay ? "Pause" : "Play"}
+              aria-label={playerState === 'playing' ? "Pause" : "Play"}
             >
-              {shouldPlay ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              {playerState === 'playing' ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </Button>
 
             <Button
@@ -468,6 +470,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               size="icon"
               className="spotify-button w-8 h-8 p-0 text-foreground"
               onClick={handleSkipNext}
+              aria-label="Next track"
             >
               <SkipForward className="h-5 w-5" />
             </Button>
@@ -477,6 +480,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               size="icon"
               className={getLoopButtonClass()}
               onClick={toggleLoop}
+              aria-label={`Loop ${loopMode}`}
               title={loopMode === 'off' ? 'Loop Off' : loopMode === 'all' ? 'Loop All' : 'Loop One'}
             >
               {getLoopIcon()}
@@ -495,6 +499,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               step={1}
               className="flex-1"
               onValueChange={handleTimeChange}
+              aria-label="Playback progress"
             />
             <span className="text-xs text-muted-foreground w-10">
               {formatTime(duration)}
@@ -512,6 +517,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             step={1}
             className="w-24"
             onValueChange={(value) => handleVolumeChange(value)}
+            aria-label="Volume"
           />
         </div>
       </div>

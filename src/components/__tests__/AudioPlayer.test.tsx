@@ -66,7 +66,7 @@ describe('AudioPlayer', () => {
 
   it('renders loading state initially', () => {
     render(<AudioPlayer {...mockProps} />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Preparing...')).toBeInTheDocument();
   });
 
   it('renders song details when loaded', async () => {
@@ -78,9 +78,6 @@ describe('AudioPlayer', () => {
   });
 
   it('handles play/pause state changes', async () => {
-    // Mock play to return a resolved promise
-    mockPlay.mockImplementation(() => Promise.resolve());
-
     render(<AudioPlayer {...mockProps} shouldPlay={true} />);
     
     // Wait for the audio to be loaded and play to be called
@@ -100,42 +97,42 @@ describe('AudioPlayer', () => {
 
   it('handles volume changes', () => {
     render(<AudioPlayer {...mockProps} />);
-    const volumeSlider = screen.getByRole('slider', { name: /volume/i });
+    const volumeSlider = screen.getByRole('slider', { name: 'Volume' });
     fireEvent.change(volumeSlider, { target: { value: '50' } });
     expect(mockAudioElement.volume).toBe(0.5);
   });
 
   it('handles time changes', () => {
     render(<AudioPlayer {...mockProps} />);
-    const timeSlider = screen.getByRole('slider', { name: /time/i });
+    const timeSlider = screen.getByRole('slider', { name: 'Playback progress' });
     fireEvent.change(timeSlider, { target: { value: '30' } });
     expect(mockAudioElement.currentTime).toBe(30);
   });
 
   it('handles skip next/previous', () => {
     render(<AudioPlayer {...mockProps} />);
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
     expect(mockProps.onSkipNext).toHaveBeenCalled();
     
-    fireEvent.click(screen.getByRole('button', { name: /previous/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
     expect(mockProps.onSkipPrevious).toHaveBeenCalled();
   });
 
   it('handles loop mode changes', () => {
     render(<AudioPlayer {...mockProps} />);
-    const loopButton = screen.getByRole('button', { name: /loop/i });
+    const loopButton = screen.getByRole('button', { name: 'Loop off' });
     
     // Test loop one
     fireEvent.click(loopButton);
-    expect(screen.getByRole('button', { name: /loop one/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Loop all' })).toBeInTheDocument();
     
     // Test loop all
     fireEvent.click(loopButton);
-    expect(screen.getByRole('button', { name: /loop all/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Loop one' })).toBeInTheDocument();
     
     // Test loop off
     fireEvent.click(loopButton);
-    expect(screen.getByRole('button', { name: /loop off/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Loop off' })).toBeInTheDocument();
   });
 
   it('handles error state', async () => {
@@ -147,7 +144,7 @@ describe('AudioPlayer', () => {
     render(<AudioPlayer {...mockProps} />);
     
     await waitFor(() => {
-      expect(screen.getByText('Failed to load audio')).toBeInTheDocument();
+      expect(screen.getByText('Error Loading Audio')).toBeInTheDocument();
     });
   });
 
@@ -160,13 +157,11 @@ describe('AudioPlayer', () => {
     render(<AudioPlayer {...mockProps} />);
     
     await waitFor(() => {
-      expect(screen.getByText('Failed to load audio')).toBeInTheDocument();
+      expect(screen.getByText('Error Loading Audio')).toBeInTheDocument();
     });
 
-    // Find the retry button by its test ID
+    // Click retry button
     const retryButton = screen.getByTestId('retry-button');
-    expect(retryButton).toBeInTheDocument();
-    
     fireEvent.click(retryButton);
     expect(mockLoad).toHaveBeenCalledTimes(2);
   });
