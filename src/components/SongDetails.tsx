@@ -6,13 +6,15 @@ import { useAudio } from '../contexts/AudioContext';
 
 export const SongDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { data: songs = [] } = useQuery({
+  const { data } = useQuery({
     queryKey: ['songs'],
-    queryFn: fetchSongs,
+    queryFn: () => fetchSongs({
+      limit: 100 // Fetch more songs to ensure we find the one we're looking for
+    }),
   });
   const { setSelectedSong } = useAudio();
 
-  const song = Array.isArray(songs) ? songs.find(s => s.song_id === id) : null;
+  const song = data?.items.find(s => s.song_id === id);
 
   if (!song) {
     return <div>Song not found</div>;

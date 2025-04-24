@@ -18,31 +18,28 @@ interface Song {
 
 export const SongList = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const { setSelectedSong, selectedSong, handlePlay } = useAudio();
   
-  const { data: allSongs = [], status, error, isLoading } = useQuery({
-    queryKey: ['songs'],
-    queryFn: fetchSongs,
+  const { data, status, error, isLoading } = useQuery({
+    queryKey: ['songs', page, searchTerm],
+    queryFn: () => fetchSongs({
+      artist_filter: searchTerm,
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE
+    }),
     retry: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Filter songs based on search term
-  const filteredSongs = useMemo(() => {
-    if (!Array.isArray(allSongs)) return [];
-    return allSongs.filter(song => {
-      if (!song || typeof song !== 'object') return false;
-      const title = String(song.title || '').toLowerCase();
-      const artist = String(song.artist || '').toLowerCase();
-      const search = searchTerm.toLowerCase();
-      return title.includes(search) || artist.includes(search);
-    });
-  }, [allSongs, searchTerm]);
+  const songs = data?.items || [];
+  const total = data?.total || 0;
+  const hasMore = data?.has_more || false;
 
   // Virtualization setup
   const parentRef = React.useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
-    count: filteredSongs.length,
+    count: songs.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 80,
     overscan: 5,
@@ -54,6 +51,10 @@ export const SongList = () => {
     // Start playback immediately when a song is selected
     handlePlay();
   }, [setSelectedSong, handlePlay]);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   if (isLoading) {
     return (
@@ -80,7 +81,7 @@ export const SongList = () => {
     );
   }
 
-  if (!Array.isArray(filteredSongs) || filteredSongs.length === 0) {
+  if (songs.length === 0) {
     return (
       <div className="text-muted-foreground text-center py-10">
         {searchTerm ? 'No songs found matching your search.' : 'No songs available.'}
@@ -104,7 +105,7 @@ export const SongList = () => {
           }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const song = filteredSongs[virtualRow.index];
+            const song = songs[virtualRow.index];
             if (!song || !song.song_id) return null;
 
             return (
@@ -138,14 +139,32 @@ export const SongList = () => {
                       <p className="text-muted-foreground text-xs">{song.album}</p>
                     )}
                   </div>
-                  {song.bpm && (
-                    <div className="text-muted-foreground text-sm">{song.bpm} BPM</div>
-                  )}
                 </div>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-center items-center gap-4 mt-4">
+        <button
+          onClick={() => handlePageChange(page - 1)}
+          disabled={page === 1}
+          className="spotify-button"
+        >
+          Previous
+        </button>
+        <span className="text-muted-foreground">
+          Page {page} of {Math.ceil(total / PAGE_SIZE)}
+        </span>
+        <button
+          onClick={() => handlePageChange(page + 1)}
+          disabled={!hasMore}
+          className="spotify-button"
+        >
+          Next
+        </button>
       </div>
     </div>
   );
