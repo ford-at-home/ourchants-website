@@ -585,12 +585,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               size="icon"
               className="spotify-button w-10 h-10 p-0 text-foreground"
               onClick={handlePlayPause}
+              aria-label={shouldPlay ? "Pause" : "Play"}
             >
-              {shouldPlay ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
-              )}
+              {shouldPlay ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </Button>
 
             <Button
