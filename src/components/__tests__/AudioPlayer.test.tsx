@@ -35,11 +35,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '../../test/setup';
 import userEvent from '@testing-library/user-event';
 
-// Mock HTMLMediaElement
-window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
-window.HTMLMediaElement.prototype.pause = vi.fn();
-window.HTMLMediaElement.prototype.load = vi.fn();
-
 describe('AudioPlayer', () => {
   const mockProps = {
     s3Uri: 's3://bucket/key.mp3',
@@ -102,7 +97,8 @@ describe('AudioPlayer', () => {
 
   it('handles error state', async () => {
     // Mock a failed audio load
-    window.HTMLMediaElement.prototype.load = vi.fn().mockImplementationOnce(() => {
+    const mockAudio = new Audio();
+    mockAudio.load = vi.fn().mockImplementationOnce(() => {
       throw new Error('Failed to load audio');
     });
 
@@ -114,7 +110,8 @@ describe('AudioPlayer', () => {
 
   it('handles retry after error', async () => {
     // Mock a failed audio load
-    window.HTMLMediaElement.prototype.load = vi.fn()
+    const mockAudio = new Audio();
+    mockAudio.load = vi.fn()
       .mockImplementationOnce(() => {
         throw new Error('Failed to load audio');
       })
@@ -128,6 +125,6 @@ describe('AudioPlayer', () => {
 
     const retryButton = screen.getByRole('button', { name: /retry/i });
     fireEvent.click(retryButton);
-    expect(window.HTMLMediaElement.prototype.load).toHaveBeenCalledTimes(2);
+    expect(mockAudio.load).toHaveBeenCalledTimes(2);
   });
 }); 
