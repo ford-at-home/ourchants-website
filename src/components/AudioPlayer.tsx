@@ -280,19 +280,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const getLoadingText = () => {
-    if (!s3Uri) {
-      return 'Select a song to play';
-    }
     switch (loadingState) {
       case 'loading':
         return 'Preparing...';
-      case 'ready':
-      case 'loaded':
-        return title || 'Now Playing';
       case 'error':
         return 'Error Loading Audio';
       default:
-        return 'Preparing...';
+        return '';
     }
   };
 
@@ -494,12 +488,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             </span>
             <Slider
               value={[currentTime]}
+              max={duration}
               min={0}
-              max={duration || 100}
               step={1}
-              className="flex-1"
               onValueChange={handleTimeChange}
               aria-label="Playback progress"
+              className="w-full"
             />
             <span className="text-xs text-muted-foreground w-10">
               {formatTime(duration)}
@@ -512,12 +506,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <Slider
             value={[volume * 100]}
-            min={0}
             max={100}
+            min={0}
             step={1}
-            className="w-24"
-            onValueChange={(value) => handleVolumeChange(value)}
+            onValueChange={handleVolumeChange}
             aria-label="Volume"
+            className="w-24"
           />
         </div>
       </div>
