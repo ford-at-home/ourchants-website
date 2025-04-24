@@ -51,14 +51,10 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [shouldPlay, setShouldPlay] = useState(false);
   const [resumeTimestamp, setResumeTimestamp] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['songs', currentPage],
-    queryFn: () => fetchSongs({
-      limit: 20,
-      offset: (currentPage - 1) * 20
-    }),
+    queryKey: ['songs'],
+    queryFn: fetchSongs,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -95,8 +91,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     console.log('handleSkipNext called:', {
       isLoading,
       selectedSong,
-      songsLength: songs.length,
-      hasMore: data?.has_more
+      songsLength: songs.length
     });
 
     if (isLoading || !selectedSong || songs.length === 0) {
@@ -112,26 +107,19 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
     
-    if (currentIndex === songs.length - 1 && data?.has_more) {
-      console.log('Loading next page');
-      setCurrentPage(prev => prev + 1);
-      return;
-    }
-    
     const nextIndex = (currentIndex + 1) % songs.length;
     const nextSong = songs[nextIndex];
     console.log('Next song:', nextSong);
     
     setSelectedSong(nextSong);
     setShouldPlay(true);
-  }, [selectedSong, songs, isLoading, data?.has_more]);
+  }, [selectedSong, songs, isLoading]);
 
   const handleSkipPrevious = useCallback(() => {
     console.log('handleSkipPrevious called:', {
       isLoading,
       selectedSong,
-      songsLength: songs.length,
-      currentPage
+      songsLength: songs.length
     });
 
     if (isLoading || !selectedSong || songs.length === 0) {
@@ -147,19 +135,13 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
     
-    if (currentIndex === 0 && currentPage > 1) {
-      console.log('Loading previous page');
-      setCurrentPage(prev => prev - 1);
-      return;
-    }
-    
     const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
     const prevSong = songs[prevIndex];
     console.log('Previous song:', prevSong);
     
     setSelectedSong(prevSong);
     setShouldPlay(true);
-  }, [selectedSong, songs, isLoading, currentPage]);
+  }, [selectedSong, songs, isLoading]);
 
   return (
     <AudioContext.Provider
