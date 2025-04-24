@@ -42,7 +42,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const handleSkipNext = useCallback(() => {
-    if (!selectedSong || !songs.length) return;
+    if (!selectedSong || !Array.isArray(songs) || songs.length === 0) return;
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
     if (currentIndex === -1) return;
@@ -55,7 +55,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [selectedSong, songs]);
 
   const handleSkipPrevious = useCallback(() => {
-    if (!selectedSong || !songs.length) return;
+    if (!selectedSong || !Array.isArray(songs) || songs.length === 0) return;
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
     if (currentIndex === -1) return;
