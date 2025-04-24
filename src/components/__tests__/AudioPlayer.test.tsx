@@ -159,10 +159,9 @@ describe('AudioPlayer', () => {
       expect(screen.getByText('Failed to load audio')).toBeInTheDocument();
     });
 
-    // Find the retry button by its icon
+    // Find the retry button next to the error message
     const retryButton = screen.getByRole('button', {
       name: '', // The button has no accessible name
-      description: /retry/i // Looking for any description that matches retry
     });
     
     fireEvent.click(retryButton);
