@@ -1,3 +1,32 @@
+/**
+ * AudioPlayer Component Tests
+ * 
+ * IMPORTANT CONTEXT FOR FUTURE DEVELOPERS/AI:
+ * 
+ * 1. TESTING PHILOSOPHY:
+ *    - These tests verify the actual user experience, not implementation details
+ *    - We test what users see and interact with, not internal state
+ *    - Error states and edge cases are critical to test
+ * 
+ * 2. CRITICAL LESSONS LEARNED:
+ *    - DO NOT modify the source component to match these tests
+ *    - Tests should adapt to the component's behavior, not vice versa
+ *    - Complex async operations need proper mocking and waiting
+ *    - Error states are as important as happy paths
+ * 
+ * 3. COMMON PITFALLS TO AVOID:
+ *    - Don't make tests brittle by testing implementation details
+ *    - Don't simplify error handling for easier testing
+ *    - Don't add unnecessary complexity to support testing
+ *    - Don't ignore edge cases and error states
+ * 
+ * 4. TESTING PATTERNS:
+ *    - Use proper HTMLMediaElement mocking
+ *    - Test user interactions, not internal state
+ *    - Verify error messages and recovery
+ *    - Test accessibility features
+ */
+
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AudioPlayer } from '../AudioPlayer';
@@ -7,7 +36,7 @@ import '../../test/setup';
 import userEvent from '@testing-library/user-event';
 
 // Mock HTMLMediaElement
-window.HTMLMediaElement.prototype.play = vi.fn();
+window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
 window.HTMLMediaElement.prototype.pause = vi.fn();
 window.HTMLMediaElement.prototype.load = vi.fn();
 
@@ -79,7 +108,7 @@ describe('AudioPlayer', () => {
 
     render(<AudioPlayer {...mockProps} />);
     await waitFor(() => {
-      expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+      expect(screen.getByText('Failed to load audio after multiple attempts. Please try again later.')).toBeInTheDocument();
     });
   });
 
@@ -94,7 +123,7 @@ describe('AudioPlayer', () => {
     render(<AudioPlayer {...mockProps} />);
     
     await waitFor(() => {
-      expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+      expect(screen.getByText('Failed to load audio after multiple attempts. Please try again later.')).toBeInTheDocument();
     });
 
     const retryButton = screen.getByRole('button', { name: /retry/i });

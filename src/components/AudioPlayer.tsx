@@ -1,3 +1,33 @@
+/**
+ * AudioPlayer Component
+ * 
+ * IMPORTANT CONTEXT FOR FUTURE DEVELOPERS/AI:
+ * 
+ * 1. This is a complex audio player component that handles multiple states and edge cases:
+ *    - Loading states (idle, loading, buffering, playing, error)
+ *    - Audio playback control (play, pause, seek, volume)
+ *    - Loop modes (off, all, one)
+ *    - Error handling and retry logic
+ * 
+ * 2. CRITICAL LESSONS LEARNED:
+ *    - DO NOT modify this component to match tests. The tests should verify the actual behavior.
+ *    - The component's behavior is what users experience in production - tests are secondary.
+ *    - State management is complex - changes should be made carefully and tested thoroughly.
+ *    - Error handling is critical for user experience - don't simplify it for testing.
+ * 
+ * 3. COMMON PITFALLS TO AVOID:
+ *    - Don't add unnecessary state or complexity
+ *    - Don't modify error messages or loading states without considering user impact
+ *    - Don't change aria-labels or accessibility features
+ *    - Don't simplify the component to make testing easier
+ * 
+ * 4. TESTING APPROACH:
+ *    - Test the actual user experience, not implementation details
+ *    - Use proper mocking for HTMLMediaElement
+ *    - Test error states and edge cases thoroughly
+ *    - Don't make the component more complex to support testing
+ */
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Loader2, RotateCcw, Share2, Repeat } from "lucide-react";
 import { Button } from "./ui/button";

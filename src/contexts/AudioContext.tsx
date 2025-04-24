@@ -1,3 +1,32 @@
+/**
+ * AudioContext
+ * 
+ * IMPORTANT CONTEXT FOR FUTURE DEVELOPERS/AI:
+ * 
+ * 1. PURPOSE:
+ *    - Manages global audio state across the application
+ *    - Handles song selection, playback state, and navigation
+ *    - Provides audio controls to all components
+ * 
+ * 2. CRITICAL LESSONS LEARNED:
+ *    - State management is complex and affects multiple components
+ *    - Changes here can have wide-ranging effects
+ *    - Error handling must be consistent across the app
+ *    - Performance is critical - avoid unnecessary re-renders
+ * 
+ * 3. COMMON PITFALLS TO AVOID:
+ *    - Don't add unnecessary state or complexity
+ *    - Don't modify the API without considering all consumers
+ *    - Don't ignore error states or edge cases
+ *    - Don't make changes without testing all affected components
+ * 
+ * 4. USAGE PATTERNS:
+ *    - Use the context at the highest necessary level
+ *    - Consider performance implications of context updates
+ *    - Handle errors consistently across the app
+ *    - Test all components that consume this context
+ */
+
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { Song } from '../types/song';
 import { AudioPlayer } from '../components/AudioPlayer';
