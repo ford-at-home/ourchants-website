@@ -51,97 +51,139 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [shouldPlay, setShouldPlay] = useState(false);
   const [resumeTimestamp, setResumeTimestamp] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  console.log('AudioContext - Initial state:', {
+    selectedSong,
+    shouldPlay,
+    resumeTimestamp,
+    currentPage
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['songs'],
-    queryFn: fetchSongs,
+    queryKey: ['songs', currentPage],
+    queryFn: () => {
+      console.log('AudioContext - Fetching songs with params:', {
+        currentPage,
+        limit: 20,
+        offset: (currentPage - 1) * 20
+      });
+      return fetchSongs({
+        limit: 20,
+        offset: (currentPage - 1) * 20
+      });
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Add debug logging for data changes
   useEffect(() => {
-    console.log('Songs data changed:', {
+    console.log('AudioContext - Data state changed:', {
       data,
       isLoading,
-      songsLength: data?.items?.length || 0,
-      selectedSong
+      dataType: data ? typeof data : 'undefined',
+      itemsType: data?.items ? typeof data.items : 'undefined',
+      isArray: Array.isArray(data?.items),
+      itemsLength: data?.items?.length,
+      selectedSong,
+      rawData: data
     });
   }, [data, isLoading, selectedSong]);
 
   // Ensure songs is always an array
   const songs = Array.isArray(data?.items) ? data.items : [];
+  console.log('AudioContext - Processed songs array:', {
+    songsLength: songs.length,
+    isArray: Array.isArray(songs),
+    firstSong: songs[0]
+  });
 
   const handlePlay = useCallback(() => {
-    console.log('handlePlay called');
+    console.log('AudioContext - handlePlay called');
     setShouldPlay(true);
   }, []);
 
   const handlePause = useCallback(() => {
-    console.log('handlePause called');
+    console.log('AudioContext - handlePause called');
     setShouldPlay(false);
   }, []);
 
   const resumeFromTimestamp = useCallback((timestamp: number) => {
-    console.log('resumeFromTimestamp called:', timestamp);
+    console.log('AudioContext - resumeFromTimestamp called:', timestamp);
     setResumeTimestamp(timestamp);
     setShouldPlay(true);
   }, []);
 
   const handleSkipNext = useCallback(() => {
-    console.log('handleSkipNext called:', {
+    console.log('AudioContext - handleSkipNext called:', {
       isLoading,
       selectedSong,
-      songsLength: songs.length
+      songsLength: songs.length,
+      hasMore: data?.has_more,
+      songs: songs
     });
 
     if (isLoading || !selectedSong || songs.length === 0) {
-      console.log('Skipping next - invalid state');
+      console.log('AudioContext - Skipping next - invalid state');
       return;
     }
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    console.log('Current index:', currentIndex);
+    console.log('AudioContext - Current index:', currentIndex);
     
     if (currentIndex === -1) {
-      console.log('Current song not found in list');
+      console.log('AudioContext - Current song not found in list');
+      return;
+    }
+    
+    if (currentIndex === songs.length - 1 && data?.has_more) {
+      console.log('AudioContext - Loading next page');
+      setCurrentPage(prev => prev + 1);
       return;
     }
     
     const nextIndex = (currentIndex + 1) % songs.length;
     const nextSong = songs[nextIndex];
-    console.log('Next song:', nextSong);
+    console.log('AudioContext - Next song:', nextSong);
     
     setSelectedSong(nextSong);
     setShouldPlay(true);
-  }, [selectedSong, songs, isLoading]);
+  }, [selectedSong, songs, isLoading, data?.has_more]);
 
   const handleSkipPrevious = useCallback(() => {
-    console.log('handleSkipPrevious called:', {
+    console.log('AudioContext - handleSkipPrevious called:', {
       isLoading,
       selectedSong,
-      songsLength: songs.length
+      songsLength: songs.length,
+      currentPage
     });
 
     if (isLoading || !selectedSong || songs.length === 0) {
-      console.log('Skipping previous - invalid state');
+      console.log('AudioContext - Skipping previous - invalid state');
       return;
     }
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    console.log('Current index:', currentIndex);
+    console.log('AudioContext - Current index:', currentIndex);
     
     if (currentIndex === -1) {
-      console.log('Current song not found in list');
+      console.log('AudioContext - Current song not found in list');
+      return;
+    }
+    
+    if (currentIndex === 0 && currentPage > 1) {
+      console.log('AudioContext - Loading previous page');
+      setCurrentPage(prev => prev - 1);
       return;
     }
     
     const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
     const prevSong = songs[prevIndex];
-    console.log('Previous song:', prevSong);
+    console.log('AudioContext - Previous song:', prevSong);
     
     setSelectedSong(prevSong);
     setShouldPlay(true);
-  }, [selectedSong, songs, isLoading]);
+  }, [selectedSong, songs, isLoading, currentPage]);
 
   return (
     <AudioContext.Provider

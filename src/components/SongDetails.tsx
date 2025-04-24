@@ -7,11 +7,14 @@ import { Song } from '../types/song';
 
 export const SongDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  console.log('SongDetails rendered with id:', id);
+  console.log('SongDetails - Component rendered with id:', id);
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['songs', id],
-    queryFn: fetchSongs
+    queryFn: () => {
+      console.log('SongDetails - Fetching songs');
+      return fetchSongs();
+    }
   });
   const { setSelectedSong } = useAudio();
 
@@ -41,7 +44,11 @@ export const SongDetails: React.FC = () => {
 
   // Ensure data.items is an array before using find
   const items = Array.isArray(data?.items) ? data.items : [];
-  console.log('SongDetails - Items array:', items);
+  console.log('SongDetails - Processed items array:', {
+    itemsLength: items.length,
+    isArray: Array.isArray(items),
+    firstItem: items[0]
+  });
   
   const song = items.find(s => s.song_id === id);
   console.log('SongDetails - Found song:', song);
