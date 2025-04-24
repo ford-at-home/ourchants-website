@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Loader2, RotateCcw, Share2, Repeat } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
@@ -26,6 +26,8 @@ interface AudioPlayerProps {
 
 type PlayerState = 'idle' | 'loading' | 'buffering' | 'playing' | 'error';
 
+type LoadingState = 'idle' | 'loading' | 'error' | 'ready' | 'loaded';
+
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
   s3Uri, 
   title = 'Unknown Title',
@@ -39,6 +41,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onSkipNext,
   onSkipPrevious
 }) => {
+  // Input validation
+  if (!s3Uri) {
+    console.warn('AudioPlayer: No s3Uri provided');
+    return null;
+  }
+
+  if (initialTimestamp && (isNaN(initialTimestamp) || initialTimestamp < 0)) {
+    console.warn('AudioPlayer: Invalid initialTimestamp provided');
+    initialTimestamp = 0;
+  }
+
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -47,7 +60,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [loadingState, setLoadingState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const prevS3UriRef = useRef<string | null>(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -92,7 +105,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         audioRef.current.removeEventListener('canplay', handleCanPlay);
       }
     };
-  }, []);
+  }, [volume]);
 
   // Handle loop mode changes separately
   useEffect(() => {
@@ -153,6 +166,62 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     console.log('Extracted S3 info:', { bucket, key });
     return { bucket, key };
   };
+
+  const loadAudio = useCallback(async () => {
+    const audioElement = audioRef.current;
+    if (!audioElement) {
+      console.error('AudioPlayer: Audio element not initialized');
+      return;
+    }
+
+    setLoadingState('loading');
+    setPlayerState('idle');
+
+    try {
+      // Parse S3 URI and validate format
+      const match = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+      if (!match) {
+        throw new Error('Invalid S3 URI format');
+      }
+      const [, bucket, key] = match;
+
+      let retryCount = 0;
+      let success = false;
+
+      while (retryCount < MAX_RETRIES && !success) {
+        try {
+          const response = await fetch(`/api/songs/${songId}/stream`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          
+          const currentAudioElement = audioRef.current;
+          if (!currentAudioElement) {
+            throw new Error('Audio element not initialized');
+          }
+          
+          currentAudioElement.src = url;
+          await currentAudioElement.load();
+          success = true;
+          setLoadingState('loaded');
+        } catch (error) {
+          retryCount++;
+          if (retryCount === MAX_RETRIES) {
+            throw error;
+          }
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
+      }
+    } catch (error: any) {
+      console.error('AudioPlayer: Failed to load audio', error);
+      setLoadingState('error');
+      setPlayerState('error');
+      toast.error(`Failed to load audio: ${error.message}`);
+    }
+  }, [s3Uri, songId]);
 
   // Handle S3 URI changes and fetch presigned URL
   useEffect(() => {
@@ -252,11 +321,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       if (shouldPlay) {
         try {
-          console.log('AudioPlayer: Attempting to play');
-          await audioRef.current!.play();
+          await audioRef.current.play();
           setPlayerState('playing');
+          onPlayStarted?.();
         } catch (err) {
-          console.error('Play failed:', err);
+          console.error('Failed to play:', err);
           if (err instanceof Error && err.name === 'NotAllowedError') {
             // Don't show error for autoplay restrictions
             return;
@@ -265,14 +334,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setPlayerState('error');
         }
       } else {
-        console.log('AudioPlayer: Pausing playback');
-        audioRef.current!.pause();
+        audioRef.current.pause();
         setPlayerState('idle');
       }
     };
 
     handlePlayState();
-  }, [shouldPlay, audioUrl]);
+  }, [shouldPlay, s3Uri, audioUrl, playerState, onPlayStarted]);
 
   // Save resume state every 5 seconds when playing
   useEffect(() => {
@@ -428,6 +496,37 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       onPlay?.();
     }
   };
+
+  // Handle retry logic
+  useEffect(() => {
+    if (retryCount > 0 && retryCount < MAX_RETRIES) {
+      const setupAudio = async () => {
+        try {
+          const s3Info = extractS3Info(s3Uri);
+          const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
+          
+          if (audioRef.current) {
+            audioRef.current.src = response.url;
+            audioRef.current.load();
+            setAudioUrl(response.url);
+            setLoadingState('ready');
+            
+            if (shouldPlay) {
+              await audioRef.current.play();
+              setPlayerState('playing');
+            }
+          }
+        } catch (err) {
+          console.error('Error retrying audio setup:', err);
+          setError('Failed to load audio after multiple attempts. Please try again later.');
+          setLoadingState('error');
+          setPlayerState('error');
+        }
+      };
+
+      setupAudio();
+    }
+  }, [retryCount, s3Uri, shouldPlay]);
 
   return (
     <div className="spotify-player fixed bottom-0 left-0 right-0">

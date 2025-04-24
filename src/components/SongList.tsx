@@ -1,20 +1,13 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Play } from 'lucide-react';
 import { useAudio } from '../contexts/AudioContext';
 import { SearchBar } from './SearchBar';
 import { fetchSongs } from '../services/songApi';
+import { Song } from '../types/song';
 
 const PAGE_SIZE = 20;
-
-interface Song {
-  song_id: string;
-  title: string;
-  artist: string;
-  album?: string;
-  bpm?: number;
-}
 
 export const SongList = () => {
   const [searchTerm, setSearchTerm] = useState('');

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { Song } from '../types/song';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { useQuery } from '@tanstack/react-query';
@@ -30,56 +30,103 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       limit: 20,
       offset: (currentPage - 1) * 20
     }),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const songs = data?.items || [];
+  // Add debug logging for data changes
+  useEffect(() => {
+    console.log('Songs data changed:', {
+      data,
+      isLoading,
+      songsLength: data?.items?.length || 0,
+      selectedSong
+    });
+  }, [data, isLoading, selectedSong]);
+
+  // Ensure songs is always an array
+  const songs = Array.isArray(data?.items) ? data.items : [];
 
   const handlePlay = useCallback(() => {
+    console.log('handlePlay called');
     setShouldPlay(true);
   }, []);
 
   const handlePause = useCallback(() => {
+    console.log('handlePause called');
     setShouldPlay(false);
   }, []);
 
   const resumeFromTimestamp = useCallback((timestamp: number) => {
+    console.log('resumeFromTimestamp called:', timestamp);
     setResumeTimestamp(timestamp);
     setShouldPlay(true);
   }, []);
 
   const handleSkipNext = useCallback(() => {
-    if (isLoading || !selectedSong || songs.length === 0) return;
+    console.log('handleSkipNext called:', {
+      isLoading,
+      selectedSong,
+      songsLength: songs.length,
+      hasMore: data?.has_more
+    });
+
+    if (isLoading || !selectedSong || songs.length === 0) {
+      console.log('Skipping next - invalid state');
+      return;
+    }
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    if (currentIndex === -1) return;
+    console.log('Current index:', currentIndex);
+    
+    if (currentIndex === -1) {
+      console.log('Current song not found in list');
+      return;
+    }
     
     if (currentIndex === songs.length - 1 && data?.has_more) {
-      // Load next page
+      console.log('Loading next page');
       setCurrentPage(prev => prev + 1);
       return;
     }
     
     const nextIndex = (currentIndex + 1) % songs.length;
     const nextSong = songs[nextIndex];
+    console.log('Next song:', nextSong);
     
     setSelectedSong(nextSong);
     setShouldPlay(true);
   }, [selectedSong, songs, isLoading, data?.has_more]);
 
   const handleSkipPrevious = useCallback(() => {
-    if (isLoading || !selectedSong || songs.length === 0) return;
+    console.log('handleSkipPrevious called:', {
+      isLoading,
+      selectedSong,
+      songsLength: songs.length,
+      currentPage
+    });
+
+    if (isLoading || !selectedSong || songs.length === 0) {
+      console.log('Skipping previous - invalid state');
+      return;
+    }
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    if (currentIndex === -1) return;
+    console.log('Current index:', currentIndex);
+    
+    if (currentIndex === -1) {
+      console.log('Current song not found in list');
+      return;
+    }
     
     if (currentIndex === 0 && currentPage > 1) {
-      // Load previous page
+      console.log('Loading previous page');
       setCurrentPage(prev => prev - 1);
       return;
     }
     
     const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
     const prevSong = songs[prevIndex];
+    console.log('Previous song:', prevSong);
     
     setSelectedSong(prevSong);
     setShouldPlay(true);
