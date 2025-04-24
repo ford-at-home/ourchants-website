@@ -97,8 +97,7 @@ describe('AudioPlayer', () => {
 
   it('handles error state', async () => {
     // Mock a failed audio load
-    const mockAudio = new Audio();
-    mockAudio.load = vi.fn().mockImplementationOnce(() => {
+    window.HTMLMediaElement.prototype.load = vi.fn().mockImplementationOnce(() => {
       throw new Error('Failed to load audio');
     });
 
@@ -110,8 +109,7 @@ describe('AudioPlayer', () => {
 
   it('handles retry after error', async () => {
     // Mock a failed audio load
-    const mockAudio = new Audio();
-    mockAudio.load = vi.fn()
+    window.HTMLMediaElement.prototype.load = vi.fn()
       .mockImplementationOnce(() => {
         throw new Error('Failed to load audio');
       })
@@ -125,6 +123,6 @@ describe('AudioPlayer', () => {
 
     const retryButton = screen.getByRole('button', { name: /retry/i });
     fireEvent.click(retryButton);
-    expect(mockAudio.load).toHaveBeenCalledTimes(2);
+    expect(window.HTMLMediaElement.prototype.load).toHaveBeenCalledTimes(2);
   });
 }); 
