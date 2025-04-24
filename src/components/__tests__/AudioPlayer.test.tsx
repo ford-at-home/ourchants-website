@@ -33,7 +33,10 @@ import { AudioPlayer } from '../AudioPlayer';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '../../test/setup';
-import userEvent from '@testing-library/user-event';
+
+// Get access to the mock functions
+const mockPlay = window.HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>;
+const mockLoad = window.HTMLMediaElement.prototype.load as unknown as ReturnType<typeof vi.fn>;
 
 describe('AudioPlayer', () => {
   const mockProps = {
@@ -50,6 +53,9 @@ describe('AudioPlayer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset HTMLMediaElement mock implementations
+    mockPlay.mockResolvedValue(undefined);
+    mockLoad.mockImplementation(() => {});
   });
 
   it('renders song details', () => {
@@ -60,56 +66,86 @@ describe('AudioPlayer', () => {
 
   it('handles play/pause state changes', async () => {
     render(<AudioPlayer {...mockProps} />);
+    
+    // Initial play
     const playButton = screen.getByRole('button', { name: /play/i });
     await fireEvent.click(playButton);
-    expect(mockProps.onPlay).toHaveBeenCalled();
+    
+    await waitFor(() => {
+      expect(mockPlay).toHaveBeenCalled();
+      expect(mockProps.onPlay).toHaveBeenCalled();
+    });
+
+    // Pause
+    const pauseButton = screen.getByRole('button', { name: /pause/i });
+    await fireEvent.click(pauseButton);
+    
+    expect(window.HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+    expect(mockProps.onPause).toHaveBeenCalled();
   });
 
-  it('handles volume changes', () => {
+  it('handles volume changes', async () => {
     render(<AudioPlayer {...mockProps} />);
     const volumeSlider = screen.getByRole('slider', { name: /volume/i });
-    fireEvent.change(volumeSlider, { target: { value: '50' } });
-    expect(HTMLMediaElement.prototype.volume).toBeDefined();
+    
+    await fireEvent.change(volumeSlider, { target: { value: '50' } });
+    
+    const volumeSetter = Object.getOwnPropertyDescriptor(window.HTMLMediaElement.prototype, 'volume')?.set;
+    expect(volumeSetter).toHaveBeenCalled();
   });
 
-  it('handles time changes', () => {
+  it('handles time changes', async () => {
     render(<AudioPlayer {...mockProps} />);
     const timeSlider = screen.getByRole('slider', { name: /playback progress/i });
-    fireEvent.change(timeSlider, { target: { value: '30' } });
-    expect(HTMLMediaElement.prototype.currentTime).toBeDefined();
+    
+    await fireEvent.change(timeSlider, { target: { value: '30' } });
+    
+    const timeSetter = Object.getOwnPropertyDescriptor(window.HTMLMediaElement.prototype, 'currentTime')?.set;
+    expect(timeSetter).toHaveBeenCalled();
   });
 
-  it('handles skip next/previous', () => {
+  it('handles skip next/previous', async () => {
     render(<AudioPlayer {...mockProps} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
+    
+    await fireEvent.click(screen.getByRole('button', { name: /next track/i }));
     expect(mockProps.onSkipNext).toHaveBeenCalled();
     
-    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
+    await fireEvent.click(screen.getByRole('button', { name: /previous track/i }));
     expect(mockProps.onSkipPrevious).toHaveBeenCalled();
   });
 
-  it('handles loop mode changes', () => {
+  it('handles loop mode changes', async () => {
     render(<AudioPlayer {...mockProps} />);
     const loopButton = screen.getByRole('button', { name: /loop/i });
-    fireEvent.click(loopButton);
-    expect(screen.getByRole('button', { name: /loop/i })).toBeInTheDocument();
+    
+    // Click through loop modes: off -> all -> one -> off
+    await fireEvent.click(loopButton);
+    expect(loopButton).toHaveAttribute('aria-label', expect.stringMatching(/loop all/i));
+    
+    await fireEvent.click(loopButton);
+    expect(loopButton).toHaveAttribute('aria-label', expect.stringMatching(/loop one/i));
+    
+    await fireEvent.click(loopButton);
+    expect(loopButton).toHaveAttribute('aria-label', expect.stringMatching(/loop off/i));
   });
 
   it('handles error state', async () => {
     // Mock a failed audio load
-    window.HTMLMediaElement.prototype.load = vi.fn().mockImplementationOnce(() => {
+    mockLoad.mockImplementationOnce(() => {
       throw new Error('Failed to load audio');
     });
 
     render(<AudioPlayer {...mockProps} />);
+    
     await waitFor(() => {
-      expect(screen.getByText('Failed to load audio after multiple attempts. Please try again later.')).toBeInTheDocument();
+      expect(screen.getByText(/error loading audio/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });
   });
 
   it('handles retry after error', async () => {
-    // Mock a failed audio load
-    window.HTMLMediaElement.prototype.load = vi.fn()
+    // Mock initial failure then success
+    mockLoad
       .mockImplementationOnce(() => {
         throw new Error('Failed to load audio');
       })
@@ -117,12 +153,21 @@ describe('AudioPlayer', () => {
 
     render(<AudioPlayer {...mockProps} />);
     
+    // Wait for error state
     await waitFor(() => {
-      expect(screen.getByText('Failed to load audio after multiple attempts. Please try again later.')).toBeInTheDocument();
+      expect(screen.getByText(/error loading audio/i)).toBeInTheDocument();
     });
 
+    // Click retry
     const retryButton = screen.getByRole('button', { name: /retry/i });
-    fireEvent.click(retryButton);
-    expect(window.HTMLMediaElement.prototype.load).toHaveBeenCalledTimes(2);
+    await fireEvent.click(retryButton);
+
+    // Verify retry attempt
+    expect(mockLoad).toHaveBeenCalledTimes(2);
+    
+    // Wait for success state
+    await waitFor(() => {
+      expect(screen.queryByText(/error loading audio/i)).not.toBeInTheDocument();
+    });
   });
 }); 
