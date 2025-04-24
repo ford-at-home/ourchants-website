@@ -3,13 +3,13 @@ export interface Song {
   title: string;
   artist: string;
   album?: string;
-  bpm?: number;
-  s3_uri: string;
-  description?: string;
-  lineage?: string[];
+  bpm?: string;
   composer?: string;
   version?: string;
   date?: string;
   filename?: string;
   filepath?: string;
+  description?: string;
+  lineage?: string[];
+  s3_uri: string;
 }
