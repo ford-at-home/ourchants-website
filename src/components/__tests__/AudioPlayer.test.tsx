@@ -2,8 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AudioPlayer } from '../AudioPlayer';
 import '@testing-library/jest-dom';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, SpyInstance } from 'vitest';
 import '../../test/setup';
+import userEvent from '@testing-library/user-event';
 
 // Mock fetch globally
 global.fetch = vi.fn(() =>
@@ -14,14 +15,22 @@ global.fetch = vi.fn(() =>
 ) as unknown as typeof fetch;
 
 // Mock Audio globally
-global.Audio = vi.fn(() => ({
-  play: vi.fn(),
-  pause: vi.fn(),
-  load: vi.fn(),
+const mockPlay = vi.fn();
+const mockPause = vi.fn();
+const mockLoad = vi.fn();
+const mockAudio = {
+  play: mockPlay,
+  pause: mockPause,
+  load: mockLoad,
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
   currentTime: 0,
-})) as unknown as typeof Audio;
+  volume: 1,
+  src: '',
+  crossOrigin: '',
+  duration: 100,
+};
+global.Audio = vi.fn(() => mockAudio) as unknown as typeof Audio;
 
 describe('AudioPlayer', () => {
   beforeEach(() => {
@@ -79,14 +88,21 @@ describe('AudioPlayer', () => {
       />
     );
     expect(global.Audio).toHaveBeenCalled();
+    expect(mockAudio.volume).toBe(1);
+    expect(mockAudio.crossOrigin).toBe('anonymous');
   });
 
   it('handles play/pause state changes', async () => {
+    const onPlay = vi.fn();
+    const onPause = vi.fn();
+
     render(
       <AudioPlayer
         s3Uri="s3://bucket/key"
         title="Test Song"
         artist="Test Artist"
+        onPlay={onPlay}
+        onPause={onPause}
       />
     );
     
@@ -95,21 +111,28 @@ describe('AudioPlayer', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
+    // Simulate canplay event
+    const canPlayHandler = mockAudio.addEventListener.mock.calls.find(
+      call => call[0] === 'canplay'
+    )?.[1];
+    canPlayHandler?.();
+
     const playButton = screen.getByRole('button', { name: /play/i });
     expect(playButton).toBeInTheDocument();
 
     // Click play
     fireEvent.click(playButton);
-    await waitFor(() => {
-      expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
-    });
+    expect(mockPlay).toHaveBeenCalled();
+    expect(onPlay).toHaveBeenCalled();
 
     // Should now show pause button
-    expect(screen.getByRole('button', { name: /pause/i })).toBeInTheDocument();
+    const pauseButton = screen.getByRole('button', { name: /pause/i });
+    expect(pauseButton).toBeInTheDocument();
 
     // Click pause
-    fireEvent.click(screen.getByRole('button', { name: /pause/i }));
-    expect(window.HTMLMediaElement.prototype.pause).toHaveBeenCalledTimes(1);
+    fireEvent.click(pauseButton);
+    expect(mockPause).toHaveBeenCalled();
+    expect(onPause).toHaveBeenCalled();
 
     // Should show play button again
     expect(screen.getByRole('button', { name: /play/i })).toBeInTheDocument();
@@ -133,7 +156,7 @@ describe('AudioPlayer', () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    // Should show error message
-    expect(screen.getByText(/Failed to load audio/i)).toBeInTheDocument();
+    // Should show retry button
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
 }); 

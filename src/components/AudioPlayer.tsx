@@ -275,6 +275,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             try {
               await audioRef.current.play();
               setPlayerState('playing');
+              onPlayStarted?.();
             } catch (err) {
               console.error('Failed to play new song:', err);
               if (err instanceof Error && err.name === 'NotAllowedError') {
@@ -307,12 +308,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     setupAudio();
-  }, [s3Uri, initialTimestamp, shouldPlay]);
+  }, [s3Uri, initialTimestamp, shouldPlay, onPlayStarted, retryCount]);
 
   // Handle play/pause state changes
   useEffect(() => {
-    console.log('Play state effect', { shouldPlay, s3Uri, audioUrl, playerState });
-    if (!audioRef.current || !audioUrl) {
+    const audioElement = audioRef.current;
+    if (!audioElement || !audioUrl) {
       console.log('Skipping play state effect - no audio element or URL');
       return;
     }
@@ -328,7 +329,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       if (shouldPlay) {
         try {
-          await audioRef.current.play();
+          await audioElement.play();
           setPlayerState('playing');
           onPlayStarted?.();
         } catch (err) {
@@ -341,39 +342,38 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setPlayerState('error');
         }
       } else {
-        audioRef.current.pause();
+        audioElement.pause();
         setPlayerState('idle');
       }
     };
 
     handlePlayState();
-  }, [shouldPlay, s3Uri, audioUrl, playerState, onPlayStarted]);
+  }, [shouldPlay, audioUrl, onPlayStarted]);
 
   // Save resume state every 5 seconds when playing
   useEffect(() => {
-    if (!playerState || !songId || !audioRef.current) return;
+    const audioElement = audioRef.current;
+    if (!playerState || !songId || !audioElement) return;
 
     const interval = setInterval(() => {
-      if (audioRef.current) {
-        saveResumeState(songId, audioRef.current.currentTime);
-      }
+      saveResumeState(songId, audioElement.currentTime);
     }, 5000);
 
     return () => clearInterval(interval);
   }, [playerState, songId]);
 
   const handleTimeChange = (value: number[]) => {
-    const currentAudioElement = audioRef.current;
-    if (!currentAudioElement) return;
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
     console.log('Seeking to:', value[0]);
-    currentAudioElement.currentTime = value[0];
+    audioElement.currentTime = value[0];
   };
 
   const handleVolumeChange = (value: number[]) => {
-    const currentAudioElement = audioRef.current;
-    if (!currentAudioElement) return;
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
     console.log('Setting volume to:', value[0]);
-    currentAudioElement.volume = value[0] / 100;
+    audioElement.volume = value[0] / 100;
     setVolume(value[0] / 100);
   };
 
@@ -401,15 +401,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const handleRetry = () => {
-    if (retryCount >= MAX_RETRIES) {
-      setError('Maximum retry attempts reached. Please try again later.');
-      return;
-    }
-    setRetryCount(prev => prev + 1);
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+    setRetryCount(0);
     setError(null);
-    // Re-initialize audio
-    const event = new Event('retry');
-    window.dispatchEvent(event);
+    setLoadingState('loading');
+    audioElement.load();
   };
 
   const copyToClipboard = (text: string) => {
@@ -454,15 +451,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const handleSkipNext = () => {
-    if (onSkipNext) {
-      onSkipNext();
-    }
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+    onSkipNext?.();
   };
 
   const handleSkipPrevious = () => {
-    if (onSkipPrevious) {
-      onSkipPrevious();
-    }
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+    onSkipPrevious?.();
   };
 
   const toggleLoop = () => {
@@ -499,11 +496,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const handlePlayPause = () => {
-    console.log('handlePlayPause called', { shouldPlay, s3Uri, audioUrl });
-    if (shouldPlay) {
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+
+    if (playerState === 'playing') {
+      audioElement.pause();
+      setPlayerState('idle');
       onPause?.();
     } else {
-      onPlay?.();
+      audioElement.play()
+        .then(() => {
+          setPlayerState('playing');
+          onPlay?.();
+        })
+        .catch((error) => {
+          console.error('Failed to play:', error);
+          setPlayerState('error');
+          setError('Playback failed');
+        });
     }
   };
 
