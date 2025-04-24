@@ -23,7 +23,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [shouldPlay, setShouldPlay] = useState(false);
   const [resumeTimestamp, setResumeTimestamp] = useState<number | null>(null);
 
-  const { data: songs = [] } = useQuery<Song[]>({
+  const { data: songs = [], isLoading } = useQuery<Song[]>({
     queryKey: ['songs'],
     queryFn: fetchSongs,
   });
@@ -42,7 +42,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const handleSkipNext = useCallback(() => {
-    if (!selectedSong || !Array.isArray(songs) || songs.length === 0) return;
+    if (isLoading || !selectedSong || !Array.isArray(songs) || songs.length === 0) return;
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
     if (currentIndex === -1) return;
@@ -52,10 +52,10 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     setSelectedSong(nextSong);
     setShouldPlay(true);
-  }, [selectedSong, songs]);
+  }, [selectedSong, songs, isLoading]);
 
   const handleSkipPrevious = useCallback(() => {
-    if (!selectedSong || !Array.isArray(songs) || songs.length === 0) return;
+    if (isLoading || !selectedSong || !Array.isArray(songs) || songs.length === 0) return;
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
     if (currentIndex === -1) return;
@@ -65,7 +65,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     setSelectedSong(prevSong);
     setShouldPlay(true);
-  }, [selectedSong, songs]);
+  }, [selectedSong, songs, isLoading]);
 
   return (
     <AudioContext.Provider value={{ 
