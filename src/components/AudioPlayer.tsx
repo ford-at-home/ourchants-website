@@ -548,6 +548,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                   size="icon"
                   onClick={handleRetry}
                   className="text-spotify-green hover:text-spotify-green/80"
+                  data-testid="retry-button"
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>

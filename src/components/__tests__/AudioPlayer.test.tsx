@@ -78,9 +78,12 @@ describe('AudioPlayer', () => {
   });
 
   it('handles play/pause state changes', async () => {
+    // Mock play to return a resolved promise
+    mockPlay.mockImplementation(() => Promise.resolve());
+
     render(<AudioPlayer {...mockProps} shouldPlay={true} />);
     
-    // Wait for the audio to be loaded
+    // Wait for the audio to be loaded and play to be called
     await waitFor(() => {
       expect(mockPlay).toHaveBeenCalled();
     });
@@ -89,7 +92,8 @@ describe('AudioPlayer', () => {
     expect(mockProps.onPlayStarted).toHaveBeenCalled();
 
     // Change to pause state
-    render(<AudioPlayer {...mockProps} shouldPlay={false} />);
+    const playPauseButton = screen.getByRole('button', { name: /pause/i });
+    fireEvent.click(playPauseButton);
     expect(mockPause).toHaveBeenCalled();
     expect(mockProps.onPause).toHaveBeenCalled();
   });
@@ -159,10 +163,9 @@ describe('AudioPlayer', () => {
       expect(screen.getByText('Failed to load audio')).toBeInTheDocument();
     });
 
-    // Find the retry button next to the error message
-    const retryButton = screen.getByRole('button', {
-      name: '', // The button has no accessible name
-    });
+    // Find the retry button by its test ID
+    const retryButton = screen.getByTestId('retry-button');
+    expect(retryButton).toBeInTheDocument();
     
     fireEvent.click(retryButton);
     expect(mockLoad).toHaveBeenCalledTimes(2);
