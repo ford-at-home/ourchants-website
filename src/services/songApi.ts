@@ -9,6 +9,12 @@ interface PaginatedResponse<T> {
   has_more: boolean;
 }
 
+interface FetchSongsOptions {
+  artist_filter?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export const getPresignedUrl = async (bucket: string, key: string): Promise<{ url: string }> => {
   try {
     const response = await fetch(`${API_ENDPOINT}/presigned-url`, {
@@ -29,18 +35,44 @@ export const getPresignedUrl = async (bucket: string, key: string): Promise<{ ur
   }
 };
 
-export const fetchSongs = async (): Promise<PaginatedResponse<Song>> => {
+export const fetchSongs = async (options: FetchSongsOptions = {}): Promise<PaginatedResponse<Song>> => {
   try {
-    const response = await fetch(`${API_ENDPOINT}/songs`, {
+    const { artist_filter, limit = 20, offset = 0 } = options;
+    const queryParams = new URLSearchParams();
+    
+    if (artist_filter) {
+      queryParams.append('artist_filter', artist_filter);
+    }
+    if (limit) {
+      queryParams.append('limit', limit.toString());
+    }
+    if (offset) {
+      queryParams.append('offset', offset.toString());
+    }
+    
+    const url = `${API_ENDPOINT}/songs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log('fetchSongs - Making request to:', url);
+    
+    const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
     });
+    
+    console.log('fetchSongs - Response status:', response.status);
+    console.log('fetchSongs - Response ok:', response.ok);
+    
     if (!response.ok) {
-      throw new Error("Failed to fetch songs");
+      const errorText = await response.text();
+      console.error('fetchSongs - Error response:', errorText);
+      throw new Error(`Failed to fetch songs: ${response.status} ${errorText}`);
     }
-    return await response.json();
+    
+    const data = await response.json();
+    console.log('fetchSongs - Response data:', data);
+    
+    return data;
   } catch (error) {
     console.error("Error fetching songs:", error);
     return {
