@@ -1,5 +1,12 @@
 import { vi } from 'vitest';
 
+// Extend HTMLMediaElement interface to include our helper method
+declare global {
+  interface HTMLMediaElement {
+    _triggerEvent?: (type: string, event: Event) => void;
+  }
+}
+
 // Mock ResizeObserver
 class ResizeObserver {
   observe() {}
@@ -10,18 +17,43 @@ class ResizeObserver {
 // Mock window.ResizeObserver
 window.ResizeObserver = ResizeObserver;
 
-// Create a mock audio implementation
-const createMockAudio = () => ({
-  play: vi.fn().mockResolvedValue(undefined),
-  pause: vi.fn(),
-  load: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  currentTime: 0,
-  duration: 0,
-  volume: 1,
-  src: '',
-});
+// Create a mock audio implementation with proper event handling
+const createMockAudio = () => {
+  const listeners: { [key: string]: EventListenerOrEventListenerObject[] } = {};
+  
+  return {
+    play: vi.fn().mockResolvedValue(undefined),
+    pause: vi.fn(),
+    load: vi.fn(),
+    addEventListener: vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+      if (!listeners[type]) {
+        listeners[type] = [];
+      }
+      listeners[type].push(listener);
+    }),
+    removeEventListener: vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+      if (listeners[type]) {
+        listeners[type] = listeners[type].filter(l => l !== listener);
+      }
+    }),
+    currentTime: 0,
+    duration: 0,
+    volume: 1,
+    src: '',
+    // Helper to trigger events
+    _triggerEvent: (type: string, event: Event) => {
+      if (listeners[type]) {
+        listeners[type].forEach(listener => {
+          if (typeof listener === 'function') {
+            listener(event);
+          } else {
+            listener.handleEvent(event);
+          }
+        });
+      }
+    }
+  };
+};
 
 // Create properly typed mock functions
 const mockPlay = vi.fn().mockResolvedValue(undefined) as unknown as () => Promise<void>;
@@ -56,15 +88,21 @@ Object.defineProperty(window.HTMLMediaElement.prototype, 'removeEventListener', 
   value: mockRemoveEventListener
 });
 
-// Set up getters/setters for HTMLMediaElement properties
+// Set up getters/setters for HTMLMediaElement properties with proper event triggering
 Object.defineProperties(window.HTMLMediaElement.prototype, {
   currentTime: {
     get: vi.fn(() => 0),
-    set: vi.fn()
+    set: vi.fn((value: number) => {
+      const event = new Event('timeupdate');
+      window.HTMLMediaElement.prototype._triggerEvent?.('timeupdate', event);
+    })
   },
   duration: {
     get: vi.fn(() => 0),
-    set: vi.fn()
+    set: vi.fn((value: number) => {
+      const event = new Event('loadedmetadata');
+      window.HTMLMediaElement.prototype._triggerEvent?.('loadedmetadata', event);
+    })
   },
   volume: {
     get: vi.fn(() => 1),
@@ -72,7 +110,12 @@ Object.defineProperties(window.HTMLMediaElement.prototype, {
   },
   src: {
     get: vi.fn(() => ''),
-    set: vi.fn()
+    set: vi.fn((value: string) => {
+      if (value) {
+        const event = new Event('canplay');
+        window.HTMLMediaElement.prototype._triggerEvent?.('canplay', event);
+      }
+    })
   }
 });
 

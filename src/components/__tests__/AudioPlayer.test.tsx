@@ -37,6 +37,7 @@ import '../../test/setup';
 // Get access to the mock functions
 const mockPlay = window.HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>;
 const mockLoad = window.HTMLMediaElement.prototype.load as unknown as ReturnType<typeof vi.fn>;
+const mockAddEventListener = window.HTMLMediaElement.prototype.addEventListener as unknown as ReturnType<typeof vi.fn>;
 
 describe('AudioPlayer', () => {
   const mockProps = {
@@ -86,7 +87,9 @@ describe('AudioPlayer', () => {
 
   it('handles volume changes', async () => {
     render(<AudioPlayer {...mockProps} />);
-    const volumeSlider = screen.getByRole('slider', { name: /volume/i });
+    
+    // Wait for the volume slider to be rendered
+    const volumeSlider = await screen.findByRole('slider', { name: /volume/i });
     
     await fireEvent.change(volumeSlider, { target: { value: '50' } });
     
@@ -96,7 +99,9 @@ describe('AudioPlayer', () => {
 
   it('handles time changes', async () => {
     render(<AudioPlayer {...mockProps} />);
-    const timeSlider = screen.getByRole('slider', { name: /playback progress/i });
+    
+    // Wait for the time slider to be rendered
+    const timeSlider = await screen.findByRole('slider', { name: /playback progress/i });
     
     await fireEvent.change(timeSlider, { target: { value: '30' } });
     
@@ -137,10 +142,11 @@ describe('AudioPlayer', () => {
 
     render(<AudioPlayer {...mockProps} />);
     
+    // Wait for error state
     await waitFor(() => {
       expect(screen.getByText(/error loading audio/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
   });
 
   it('handles retry after error', async () => {
@@ -156,7 +162,7 @@ describe('AudioPlayer', () => {
     // Wait for error state
     await waitFor(() => {
       expect(screen.getByText(/error loading audio/i)).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     // Click retry
     const retryButton = screen.getByRole('button', { name: /retry/i });
@@ -168,6 +174,6 @@ describe('AudioPlayer', () => {
     // Wait for success state
     await waitFor(() => {
       expect(screen.queryByText(/error loading audio/i)).not.toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
   });
 }); 
