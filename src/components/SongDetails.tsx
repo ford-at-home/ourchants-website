@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from '../services/songApi';
 import { useAudio } from '../contexts/AudioContext';
+import { Song } from '../types/song';
 
 export const SongDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,11 +15,26 @@ export const SongDetails: React.FC = () => {
   });
   const { setSelectedSong } = useAudio();
 
+  // Add detailed logging
+  useEffect(() => {
+    console.log('SongDetails - Data state:', {
+      id,
+      isLoading,
+      error,
+      dataType: data ? typeof data : 'undefined',
+      itemsType: data?.items ? typeof data.items : 'undefined',
+      isArray: Array.isArray(data?.items),
+      itemsLength: data?.items?.length,
+      rawData: data
+    });
+  }, [id, isLoading, error, data]);
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   if (error) {
+    console.error('SongDetails - Error:', error);
     return <div>Error loading song details</div>;
   }
 
@@ -27,6 +43,7 @@ export const SongDetails: React.FC = () => {
   const song = items.find(s => s.song_id === id);
 
   if (!song) {
+    console.log('SongDetails - Song not found:', { id, itemsLength: items.length });
     return <div>Song not found</div>;
   }
 

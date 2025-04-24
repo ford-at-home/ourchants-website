@@ -41,17 +41,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onSkipNext,
   onSkipPrevious
 }) => {
-  // Input validation
-  if (!s3Uri) {
-    console.warn('AudioPlayer: No s3Uri provided');
-    return null;
-  }
+  console.log('AudioPlayer - Initial render:', {
+    s3Uri,
+    initialTimestamp,
+    shouldPlay
+  });
 
-  if (initialTimestamp && (isNaN(initialTimestamp) || initialTimestamp < 0)) {
-    console.warn('AudioPlayer: Invalid initialTimestamp provided');
-    initialTimestamp = 0;
-  }
-
+  // All hooks must be called at the top level
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -66,6 +62,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [loopMode, setLoopMode] = useState<LoopMode>('off');
   const MAX_RETRIES = 3;
+
+  // Input validation after hooks
+  if (!s3Uri) {
+    console.warn('AudioPlayer: No s3Uri provided');
+    return null;
+  }
+
+  if (initialTimestamp && (isNaN(initialTimestamp) || initialTimestamp < 0)) {
+    console.warn('AudioPlayer: Invalid initialTimestamp provided');
+    initialTimestamp = 0;
+  }
 
   // Initialize audio element only once
   useEffect(() => {
