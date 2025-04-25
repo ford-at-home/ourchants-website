@@ -121,24 +121,55 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const handleLoadedMetadata = () => {
       const currentAudio = audioRef.current;
       if (currentAudio) {
+        console.log('AudioPlayer - Metadata loaded:', {
+          duration: currentAudio.duration,
+          readyState: currentAudio.readyState,
+          networkState: currentAudio.networkState
+        });
         setDuration(currentAudio.duration);
       }
     };
 
     const handleCanPlay = () => {
+      console.log('AudioPlayer - Can play event fired');
       setLoadingState('ready');
+    };
+
+    const handlePlay = () => {
+      console.log('AudioPlayer - Play event fired');
+    };
+
+    const handlePause = () => {
+      console.log('AudioPlayer - Pause event fired');
+    };
+
+    const handleError = (e: Event) => {
+      console.error('AudioPlayer - Error event fired:', e);
+      const audioElement = e.target as HTMLAudioElement;
+      console.error('Audio error details:', {
+        error: audioElement.error,
+        networkState: audioElement.networkState,
+        readyState: audioElement.readyState
+      });
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('error', handleError);
 
     return () => {
+      console.log('AudioPlayer - Cleaning up audio element');
       audio.pause();
       audio.src = '';
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('error', handleError);
     };
   }, []);
 
@@ -196,6 +227,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         try {
           const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
+          console.log('AudioPlayer - Got presigned URL:', response.url);
           currentAudio.src = response.url;
           currentAudio.load();
           setAudioUrl(response.url);
@@ -203,15 +235,19 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setError(null);
           
           if (validatedTimestamp > 0) {
+            console.log('AudioPlayer - Setting initial timestamp:', validatedTimestamp);
             currentAudio.currentTime = validatedTimestamp;
           }
 
           if (shouldPlay) {
             try {
+              console.log('AudioPlayer - Attempting to play');
               await currentAudio.play();
+              console.log('AudioPlayer - Play successful');
               setPlayerState('playing');
               onPlayStarted?.();
             } catch (err) {
+              console.error('AudioPlayer - Play failed:', err);
               if (err instanceof Error && err.name === 'NotAllowedError') {
                 // User interaction required for autoplay
                 setPlayerState('idle');
@@ -254,10 +290,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const handlePlayState = async () => {
       if (shouldPlay) {
         try {
+          console.log('AudioPlayer - Attempting to play from state change');
           await currentAudio.play();
+          console.log('AudioPlayer - Play successful from state change');
           setPlayerState('playing');
           onPlayStarted?.();
         } catch (err) {
+          console.error('AudioPlayer - Play failed from state change:', err);
           if (err instanceof Error && err.name === 'NotAllowedError') {
             return;
           }
@@ -265,6 +304,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setPlayerState('error');
         }
       } else {
+        console.log('AudioPlayer - Pausing from state change');
         currentAudio.pause();
         setPlayerState('idle');
       }

@@ -129,6 +129,24 @@ describe('AppContent', () => {
     });
   });
 
+  /**
+   * TODO: Fix AudioPlayer test
+   * 
+   * Current issues:
+   * 1. The test is failing because the AudioPlayer component is not being rendered when a song is selected
+   * 2. The AudioContext state is not being properly updated when a song is clicked
+   * 
+   * To fix this:
+   * 1. Mock the SongList component to properly trigger the song selection
+   * 2. Ensure the AudioContext's setSelectedSong is being called
+   * 3. Verify the AudioPlayer component receives the correct props
+   * 4. Consider testing the AudioPlayer component in isolation first
+   * 
+   * Related files:
+   * - src/contexts/AudioContext.tsx
+   * - src/components/AudioPlayer.tsx
+   * - src/components/SongList.tsx
+   */
   it.skip('renders the AudioPlayer when a song is selected', async () => {
     renderApp();
     
@@ -169,6 +187,24 @@ describe('AppContent', () => {
     });
   });
 
+  /**
+   * TODO: Fix ResumeDialog test
+   * 
+   * Current issues:
+   * 1. The test is failing because the ResumeDialog is not being rendered
+   * 2. The resume state is being set but the dialog is not showing up
+   * 
+   * To fix this:
+   * 1. Ensure the resume state is properly set in the AudioContext
+   * 2. Verify that the ResumeDialog component receives the correct isOpen prop
+   * 3. Check that the song data is available when the resume state is set
+   * 4. Consider testing the ResumeDialog component in isolation first
+   * 
+   * Related files:
+   * - src/contexts/AudioContext.tsx
+   * - src/components/ResumeDialog.tsx
+   * - src/utils/resumeState.ts
+   */
   it.skip('handles resume state', async () => {
     // Mock getResumeState to return a resume state
     vi.mocked(getResumeState).mockReturnValue({
