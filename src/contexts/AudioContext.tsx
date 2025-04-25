@@ -27,11 +27,11 @@
  *    - Test all components that consume this context
  */
 
-import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
-import { Song } from '../types/song';
-import { AudioPlayer } from '../components/AudioPlayer';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from '../services/songApi';
+import { Song } from '../types/song';
+import { getResumeState, clearResumeState } from '../utils/resumeState';
 
 interface AudioContextType {
   selectedSong: Song | null;
@@ -43,6 +43,12 @@ interface AudioContextType {
   resumeFromTimestamp: (timestamp: number) => void;
   handleSkipNext: () => void;
   handleSkipPrevious: () => void;
+}
+
+interface SongsResponse {
+  items: Song[];
+  total: number;
+  has_more: boolean;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -60,7 +66,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     currentPage
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<SongsResponse>({
     queryKey: ['songs', currentPage],
     queryFn: () => {
       console.log('AudioContext - Fetching songs with params:', {
@@ -91,7 +97,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [data, isLoading, selectedSong]);
 
   // Ensure songs is always an array
-  const songs = Array.isArray(data?.items) ? data.items : [];
+  const songs = data?.items || [];
   console.log('AudioContext - Processed songs array:', {
     songsLength: songs.length,
     isArray: Array.isArray(songs),
@@ -139,16 +145,29 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (currentIndex === songs.length - 1 && data?.has_more) {
       console.log('AudioContext - Loading next page');
       setCurrentPage(prev => prev + 1);
-      return;
+      // Don't return here, let the useEffect handle the new data
     }
     
-    const nextIndex = (currentIndex + 1) % songs.length;
-    const nextSong = songs[nextIndex];
-    console.log('AudioContext - Next song:', nextSong);
-    
-    setSelectedSong(nextSong);
-    setShouldPlay(true);
+    // If we're not at the end of the current page, play the next song
+    if (currentIndex < songs.length - 1) {
+      const nextIndex = currentIndex + 1;
+      const nextSong = songs[nextIndex];
+      console.log('AudioContext - Next song:', nextSong);
+      setSelectedSong(nextSong);
+      setShouldPlay(true);
+    }
   }, [selectedSong, songs, isLoading, data?.has_more]);
+
+  // Add effect to handle new page data
+  useEffect(() => {
+    if (data?.items && data.items.length > 0 && currentPage > 1) {
+      // When new page data arrives, select the first song
+      const firstSong = data.items[0];
+      console.log('AudioContext - New page loaded, selecting first song:', firstSong);
+      setSelectedSong(firstSong);
+      setShouldPlay(true);
+    }
+  }, [data, currentPage]);
 
   const handleSkipPrevious = useCallback(() => {
     console.log('AudioContext - handleSkipPrevious called:', {

@@ -118,11 +118,9 @@ If the deployment fails:
 ### Current Configuration
 - **OIDC Provider**: `token.actions.githubusercontent.com`
 - **Client ID**: `sts.amazonaws.com`
-- **Thumbprint**: `d89e3bd43d5d909b47a18977aa9d5ce36cee184c`
 
 ### Required IAM Role
 - **Role Name**: `github-actions-ourchants-website-deploy`
-- **ARN**: `arn:aws:iam::418272766513:role/github-actions-ourchants-website-deploy`
 
 ### Trust Policy (Required)
 The role needs a trust policy that allows GitHub Actions to assume the role. The policy should look like:
@@ -133,7 +131,7 @@ The role needs a trust policy that allows GitHub Actions to assume the role. The
         {
             "Effect": "Allow",
             "Principal": {
-                "Federated": "arn:aws:iam::418272766513:oidc-provider/token.actions.githubusercontent.com"
+                "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
             },
             "Action": "sts:AssumeRoleWithWebIdentity",
             "Condition": {
@@ -141,7 +139,7 @@ The role needs a trust policy that allows GitHub Actions to assume the role. The
                     "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
                 },
                 "StringLike": {
-                    "token.actions.githubusercontent.com:sub": "repo:ourchants/ourchants-website:*"
+                    "token.actions.githubusercontent.com:sub": "repo:<ORG>/<REPO>:*"
                 }
             }
         }
@@ -155,7 +153,7 @@ In your GitHub Actions workflow, the AWS credentials are configured as:
 - name: Configure AWS Credentials
   uses: aws-actions/configure-aws-credentials@v4
   with:
-    role-to-assume: arn:aws:iam::418272766513:role/github-actions-ourchants-website-deploy
+    role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/github-actions-ourchants-website-deploy
     aws-region: us-east-1
     audience: sts.amazonaws.com
 ```

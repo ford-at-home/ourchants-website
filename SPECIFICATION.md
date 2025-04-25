@@ -20,7 +20,7 @@
   - `s3_uri` (String, optional)
 
 ### S3 Bucket
-- **Bucket Name**: `ourchants-songs`
+- **Bucket Name**: `<BUCKET_NAME>`
 - **File Organization**: `songs/{song_id}/{filename}`
 - **Supported Formats**: MP3, M4A
 - **Access Control**: Private with pre-signed URLs

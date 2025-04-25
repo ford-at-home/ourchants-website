@@ -4,7 +4,7 @@ This document describes the API endpoints used by the OurChants website.
 
 ## Base URL
 
-The API is hosted at: `https://hezyeh6kgj.execute-api.us-east-1.amazonaws.com`
+The API is hosted at: `https://<API_ID>.execute-api.<REGION>.amazonaws.com`
 
 ## Authentication
 

@@ -114,9 +114,9 @@ deploy: build
 		echo "Note: Cache invalidation may take a few minutes to complete"; \
 	fi
 
-	@# Deploy infrastructure
+	@# Deploy infrastructure (excluding OIDC stack)
 	@echo "🏗️  Deploying infrastructure..."
-	@cd infrastructure && ./deploy-cdk.sh
+	@cd infrastructure && ./deploy-cdk.sh --exclude GitHubOidcDeploymentRoleStack
 
 	@echo "✅ Deployment complete! Site should be available at https://$(DOMAIN_NAME)"
 	@echo "Note: If you don't see your changes immediately, wait a few minutes for CloudFront cache to clear"

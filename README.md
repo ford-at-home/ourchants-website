@@ -1,4 +1,4 @@
-[![Deploy OurChants via Makefile](https://github.com/ford-at-home/ourchants-website/actions/workflows/deploy.yml/badge.svg)](https://github.com/ford-at-home/ourchants-website/actions/workflows/deploy.yml)
+[![Deploy OurChants via Makefile](https://github.com/<ORG>/<REPO>/actions/workflows/deploy.yml/badge.svg)](https://github.com/<ORG>/<REPO>/actions/workflows/deploy.yml)
 # OurChants Website
 
 A modern web application for exploring and listening to sacred chants, built with React and deployed on AWS.
@@ -125,7 +125,7 @@ For more detailed instructions, see our [Blog Post Guide](BLOG.md).
 ## Related Resources
 
 - [Live Site](https://ourchants.com) - See the application in action
-- [Backend API](https://github.com/ford-at-home/ourchants-api) - Backend service implementation
+- [Backend API](https://github.com/<ORG>/<REPO>-api) - Backend service implementation
 - [Deployment Guide](docs/DEPLOYMENT.md) - For deployment and debugging instructions
 
 ## Contributing
