@@ -62,8 +62,8 @@ if [ -n "$STACK_NAME" ]; then
 else
     if [ ${#EXCLUDE_STACKS[@]} -gt 0 ]; then
         echo "Deploying all stacks except: ${EXCLUDE_STACKS[*]}"
-        # Get all stacks
-        ALL_STACKS=($(cdk list))
+        # Get all stacks, filtering out warning messages
+        ALL_STACKS=($(cdk list | grep -v "Warning:"))
         # Filter out excluded stacks
         STACKS_TO_DEPLOY=()
         for stack in "${ALL_STACKS[@]}"; do
@@ -79,10 +79,15 @@ else
             fi
         done
         # Deploy remaining stacks
-        for stack in "${STACKS_TO_DEPLOY[@]}"; do
-            echo "Deploying stack: $stack"
-            cdk deploy "$stack" --require-approval never
-        done
+        if [ ${#STACKS_TO_DEPLOY[@]} -gt 0 ]; then
+            for stack in "${STACKS_TO_DEPLOY[@]}"; do
+                echo "Deploying stack: $stack"
+                cdk deploy "$stack" --require-approval never
+            done
+        else
+            echo "No stacks to deploy after exclusions"
+            exit 0
+        fi
     else
         echo "Deploying all stacks"
         cdk deploy --all --require-approval never
