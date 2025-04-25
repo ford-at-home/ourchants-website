@@ -111,4 +111,90 @@ If the deployment fails:
 - Never commit AWS credentials to the repository
 - Use GitHub secrets for sensitive information
 - Regularly rotate AWS access keys
-- Consider using GitHub OIDC for more secure AWS authentication 
+- Consider using GitHub OIDC for more secure AWS authentication
+
+## GitHub Actions AWS OIDC Authentication Setup
+
+### Current Configuration
+- **OIDC Provider**: `token.actions.githubusercontent.com`
+- **Client ID**: `sts.amazonaws.com`
+- **Thumbprint**: `d89e3bd43d5d909b47a18977aa9d5ce36cee184c`
+
+### Required IAM Role
+- **Role Name**: `github-actions-ourchants-website-deploy`
+- **ARN**: `arn:aws:iam::418272766513:role/github-actions-ourchants-website-deploy`
+
+### Trust Policy (Required)
+The role needs a trust policy that allows GitHub Actions to assume the role. The policy should look like:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::418272766513:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                },
+                "StringLike": {
+                    "token.actions.githubusercontent.com:sub": "repo:ourchants/ourchants-website:*"
+                }
+            }
+        }
+    ]
+}
+```
+
+### GitHub Actions Workflow Configuration
+In your GitHub Actions workflow, the AWS credentials are configured as:
+```yaml
+- name: Configure AWS Credentials
+  uses: aws-actions/configure-aws-credentials@v4
+  with:
+    role-to-assume: arn:aws:iam::418272766513:role/github-actions-ourchants-website-deploy
+    aws-region: us-east-1
+    audience: sts.amazonaws.com
+```
+
+### Troubleshooting
+If you encounter the error `Not authorized to perform sts:AssumeRoleWithWebIdentity`:
+1. Verify the OIDC provider exists and is correctly configured
+2. Check that the IAM role exists and has the correct trust policy
+3. Ensure the role has the necessary permissions for deployment
+4. Verify the GitHub repository name matches the condition in the trust policy
+
+### Setup Commands
+To verify the configuration:
+```bash
+# List OIDC providers
+aws iam list-open-id-connect-providers
+
+# Get OIDC provider details
+aws iam get-open-id-connect-provider --open-id-connect-provider-arn <provider-arn>
+
+# Check role configuration
+aws iam get-role --role-name github-actions-ourchants-website-deploy
+
+# List role policies
+aws iam list-role-policies --role-name github-actions-ourchants-website-deploy
+aws iam list-attached-role-policies --role-name github-actions-ourchants-website-deploy
+```
+
+## Deployment Process
+1. Push changes to the main branch
+2. GitHub Actions workflow will automatically:
+   - Configure AWS credentials using OIDC
+   - Build the application
+   - Deploy to AWS S3 and CloudFront
+
+## Environment Variables
+The following environment variables are required for deployment:
+- `AWS_REGION`: us-east-1
+- `BUCKET_NAME`: S3 bucket name for static assets
+- `CF_DISTRO_ID`: CloudFront distribution ID
+- `API_ENDPOINT`: API endpoint URL
+- `DOMAIN_NAME`: ourchants.com 
