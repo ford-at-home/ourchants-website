@@ -62,8 +62,8 @@ if [ -n "$STACK_NAME" ]; then
 else
     if [ ${#EXCLUDE_STACKS[@]} -gt 0 ]; then
         echo "Deploying all stacks except: ${EXCLUDE_STACKS[*]}"
-        # Get all stacks, filtering out warning messages
-        ALL_STACKS=($(cdk list | grep -v "Warning:"))
+        # Get all stacks
+        ALL_STACKS=($(cdk list))
         # Filter out excluded stacks
         STACKS_TO_DEPLOY=()
         for stack in "${ALL_STACKS[@]}"; do
