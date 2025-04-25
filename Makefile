@@ -6,13 +6,25 @@ DOMAIN_NAME ?= ourchants.com
 CF_DISTRO_ID = EFJFO56LXFQJM
 
 # Build and Test
-.PHONY: build
+.PHONY: build test test-watch test-coverage
 build:
 	@echo "🔨 Building project..."
 	npm install
 	npm run build
 	npm run lint
 	npm run test
+
+test:
+	@echo "🧪 Running tests..."
+	npx vitest run
+
+test-watch:
+	@echo "👀 Running tests in watch mode..."
+	npx vitest
+
+test-coverage:
+	@echo "📊 Running tests with coverage..."
+	npx vitest run --coverage
 
 # Authentication Setup
 .PHONY: auth
@@ -131,6 +143,9 @@ help:
 	@echo "  make auth    - Set up GitHub Actions authentication"
 	@echo "  make diagnose - Run network diagnostics"
 	@echo "  make clean   - Clean build files and dependencies"
+	@echo "  make test    - Run tests once"
+	@echo "  make test-watch - Run tests in watch mode"
+	@echo "  make test-coverage - Run tests with coverage"
 	@echo ""
 	@echo "Variables:"
 	@echo "  DOMAIN_NAME - Custom domain name (default: ourchants.com)"

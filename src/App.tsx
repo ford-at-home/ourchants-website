@@ -16,6 +16,7 @@ import { Routes, Route, useLocation, BrowserRouter, Link } from 'react-router-do
 import { Home, Info, ClipboardList, BookOpen } from 'lucide-react';
 import BlogList from './components/BlogList';
 import BlogPost from './components/BlogPost';
+import { AudioPlayer } from './components/AudioPlayer';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
@@ -53,7 +54,7 @@ function AppContent() {
   const location = useLocation();
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [resumeSong, setResumeSong] = useState<{ id: string; timestamp: number; title: string } | null>(null);
-  const { setSelectedSong, resumeFromTimestamp } = useAudio();
+  const { setSelectedSong, resumeFromTimestamp, selectedSong, shouldPlay, handlePlay, handlePause, handleSkipNext, handleSkipPrevious } = useAudio();
 
   const { data: songs } = useQuery({
     queryKey: ['songs'],
@@ -168,6 +169,19 @@ function AppContent() {
             <Route path="/blog/:slug" element={<BlogPost />} />
           </Routes>
         </main>
+        {selectedSong && (
+          <AudioPlayer
+            s3Uri={selectedSong.s3_uri}
+            title={selectedSong.title}
+            artist={selectedSong.artist}
+            songId={selectedSong.song_id}
+            shouldPlay={shouldPlay}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onSkipNext={handleSkipNext}
+            onSkipPrevious={handleSkipPrevious}
+          />
+        )}
         {showResumeDialog && resumeSong && (
           <ResumeDialog
             isOpen={showResumeDialog}

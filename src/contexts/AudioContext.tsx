@@ -200,18 +200,6 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }}
     >
       {children}
-      <AudioPlayer 
-        s3Uri={selectedSong?.s3_uri || ''} 
-        title={selectedSong?.title}
-        artist={selectedSong?.artist}
-        songId={selectedSong?.song_id}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        shouldPlay={shouldPlay}
-        initialTimestamp={resumeTimestamp || undefined}
-        onSkipNext={handleSkipNext}
-        onSkipPrevious={handleSkipPrevious}
-      />
     </AudioContext.Provider>
   );
 };
