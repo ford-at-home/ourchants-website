@@ -3,10 +3,6 @@ import { Song } from "@/types/song";
 // API Gateway endpoint from CloudFormation stack
 const API_ENDPOINT = "https://hezyeh6kgj.execute-api.us-east-1.amazonaws.com";
 
-interface SongsResponse {
-  items: Song[];
-}
-
 export const getPresignedUrl = async (bucket: string, key: string): Promise<{ url: string }> => {
   try {
     const response = await fetch(`${API_ENDPOINT}/presigned-url`, {
@@ -27,7 +23,7 @@ export const getPresignedUrl = async (bucket: string, key: string): Promise<{ ur
   }
 };
 
-export const fetchSongs = async (): Promise<SongsResponse> => {
+export const fetchSongs = async (): Promise<Song[]> => {
   try {
     const response = await fetch(`${API_ENDPOINT}/songs`, {
       headers: {

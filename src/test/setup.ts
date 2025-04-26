@@ -1,3 +1,16 @@
+// Mock ResizeObserver at the very top
+class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+// Apply ResizeObserver mock at all levels
+window.ResizeObserver = ResizeObserver;
+global.ResizeObserver = ResizeObserver;
+(global as any).ResizeObserver = ResizeObserver;
+(global as any).window.ResizeObserver = ResizeObserver;
+
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
@@ -7,16 +20,6 @@ declare global {
     _triggerEvent?: (type: string, event: Event) => void;
   }
 }
-
-// Mock ResizeObserver
-class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-// Mock window.ResizeObserver
-window.ResizeObserver = ResizeObserver;
 
 // Create a mock audio implementation with proper event handling
 const createMockAudio = () => {

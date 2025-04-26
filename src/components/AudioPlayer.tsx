@@ -37,6 +37,7 @@ import { saveResumeState } from "../utils/resumeState";
 import { Spinner } from './ui/spinner';
 import { createSongUrl } from '../utils/urlParams';
 import { toast } from 'sonner';
+import { useSafeAudioPlay } from '../hooks/useSafeAudioPlay';
 
 type LoopMode = 'off' | 'all' | 'one';
 
@@ -97,6 +98,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevS3UriRef = useRef<string | null>(null);
   const hasEventListenersRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  // Safe audio play hook
+  const { audioRef: safeAudioRef, play: safePlay, pause: safePause } = useSafeAudioPlay({
+    onPlay: () => {
+      setPlayerState('playing');
+      onPlay?.();
+    },
+    onPause: () => {
+      setPlayerState('idle');
+      onPause?.();
+    },
+    onError: (error) => {
+      console.error('AudioPlayer - Playback error:', error);
+      setPlayerState('error');
+      setError('Playback failed');
+    }
+  });
 
   // Constants
   const MAX_RETRIES = 3;
@@ -104,87 +123,104 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     ? initialTimestamp 
     : 0;
 
-  // Define event handlers with useCallback
-  const handleTimeUpdate = useCallback((e: Event) => {
-    const currentAudio = e.target as HTMLAudioElement;
-    setCurrentTime(currentAudio.currentTime);
-  }, []);
-
-  const handleLoadedMetadata = useCallback((e: Event) => {
-    const currentAudio = e.target as HTMLAudioElement;
-    console.log('AudioPlayer - Metadata loaded:', {
-      duration: currentAudio.duration,
-      readyState: currentAudio.readyState,
-      networkState: currentAudio.networkState
-    });
-    setDuration(currentAudio.duration);
-  }, []);
-
-  const handleCanPlay = useCallback((e: Event) => {
-    console.log('AudioPlayer - Can play event fired');
-    setLoadingState('ready');
-    setIsLoading(false);
-  }, []);
-
-  const handlePlay = useCallback((e: Event) => {
-    console.log('AudioPlayer - Play event fired');
-  }, []);
-
-  const handlePause = useCallback((e: Event) => {
-    console.log('AudioPlayer - Pause event fired');
-  }, []);
-
-  const handleError = useCallback((e: Event) => {
-    console.error('AudioPlayer - Error event fired:', e);
-    const audioElement = e.target as HTMLAudioElement;
-    console.error('Audio error details:', {
-      error: audioElement.error,
-      networkState: audioElement.networkState,
-      readyState: audioElement.readyState
-    });
-    setError('Failed to load audio');
-    setIsLoading(false);
-  }, []);
-
-  // React synthetic event handlers
-  const handleReactCanPlay = useCallback((e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
-    const audioElement = e.currentTarget;
-    console.log('AudioPlayer - Can play event fired');
-    setLoadingState('ready');
-    setIsLoading(false);
-  }, []);
-
-  const handleReactError = useCallback((e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
-    const audioElement = e.currentTarget;
-    console.error('AudioPlayer - Error event fired:', e);
-    console.error('Audio error details:', {
-      error: audioElement.error,
-      networkState: audioElement.networkState,
-      readyState: audioElement.readyState
-    });
-    setError('Failed to load audio');
-    setIsLoading(false);
-  }, []);
-
-  const handleReactLoadedMetadata = useCallback((e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
-    const audioElement = e.currentTarget;
-    console.log('AudioPlayer - Metadata loaded:', {
-      duration: audioElement.duration,
-      readyState: audioElement.readyState,
-      networkState: audioElement.networkState
-    });
-    setDuration(audioElement.duration);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
+      }
+    };
   }, []);
 
   // Initialize audio element
   useEffect(() => {
-    console.log('AudioPlayer - Initializing audio element');
+    console.log('AudioPlayer - Initializing audio element', {
+      s3Uri,
+      shouldPlay,
+      playerState,
+      loadingState,
+      hasAudioRef: !!audioRef.current
+    });
+    
     const audio = new Audio();
     audio.volume = volume;
     audio.crossOrigin = "anonymous";
     audioRef.current = audio;
 
-    // Add event listeners
+    const handleTimeUpdate = () => {
+      const currentAudio = audioRef.current;
+      if (currentAudio) {
+        setCurrentTime(currentAudio.currentTime);
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      const currentAudio = audioRef.current;
+      if (currentAudio) {
+        console.log('AudioPlayer - Metadata loaded:', {
+          duration: currentAudio.duration,
+          readyState: currentAudio.readyState,
+          networkState: currentAudio.networkState,
+          src: currentAudio.src,
+          s3Uri,
+          shouldPlay,
+          playerState,
+          loadingState
+        });
+        setDuration(currentAudio.duration);
+      }
+    };
+
+    const handleCanPlay = () => {
+      console.log('AudioPlayer - Can play event fired', {
+        s3Uri,
+        shouldPlay,
+        playerState,
+        loadingState,
+        hasAudioRef: !!audioRef.current,
+        audioSrc: audioRef.current?.src
+      });
+      setLoadingState('ready');
+    };
+
+    const handlePlay = () => {
+      console.log('AudioPlayer - Play event fired', {
+        s3Uri,
+        shouldPlay,
+        playerState,
+        loadingState,
+        hasAudioRef: !!audioRef.current,
+        audioSrc: audioRef.current?.src
+      });
+    };
+
+    const handlePause = () => {
+      console.log('AudioPlayer - Pause event fired', {
+        s3Uri,
+        shouldPlay,
+        playerState,
+        loadingState,
+        hasAudioRef: !!audioRef.current,
+        audioSrc: audioRef.current?.src
+      });
+    };
+
+    const handleError = (e: Event) => {
+      console.error('AudioPlayer - Error event fired:', {
+        error: e,
+        s3Uri,
+        shouldPlay,
+        playerState,
+        loadingState,
+        hasAudioRef: !!audioRef.current,
+        audioSrc: audioRef.current?.src,
+        audioError: (e.target as HTMLAudioElement).error
+      });
+    };
+
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('canplay', handleCanPlay);
@@ -193,45 +229,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     audio.addEventListener('error', handleError);
 
     return () => {
-      console.log('AudioPlayer - Cleaning up audio element');
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current.load();
-        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        audioRef.current.removeEventListener('canplay', handleCanPlay);
-        audioRef.current.removeEventListener('play', handlePlay);
-        audioRef.current.removeEventListener('pause', handlePause);
-        audioRef.current.removeEventListener('error', handleError);
-      }
+      console.log('AudioPlayer - Cleaning up audio element', {
+        s3Uri,
+        shouldPlay,
+        playerState,
+        loadingState,
+        hasAudioRef: !!audioRef.current,
+        audioSrc: audioRef.current?.src
+      });
+      audio.pause();
+      audio.src = '';
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('error', handleError);
     };
-  }, [handleTimeUpdate, handleLoadedMetadata, handleCanPlay, handlePlay, handlePause, handleError, volume]);
-
-  // Handle loop mode changes
-  useEffect(() => {
-    const currentAudio = audioRef.current;
-    const handleEnded = () => {
-      if (!currentAudio) return;
-
-      if (loopMode === 'one') {
-        currentAudio.currentTime = 0;
-        currentAudio.play().catch(console.error);
-      } else if (loopMode === 'all') {
-        onSkipNext?.();
-      } else {
-        setPlayerState('idle');
-        onPause?.();
-      }
-    };
-
-    if (currentAudio) {
-      currentAudio.addEventListener('ended', handleEnded);
-      return () => {
-        currentAudio.removeEventListener('ended', handleEnded);
-      };
-    }
-  }, [loopMode, onSkipNext, onPause]);
+  }, []);
 
   // Handle S3 URI changes
   useEffect(() => {
@@ -242,12 +257,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     console.log('AudioPlayer - S3 URI changed:', {
       s3Uri,
-      type: typeof s3Uri,
-      length: s3Uri.length,
-      isEmpty: s3Uri.trim() === '',
-      hasProtocol: s3Uri.startsWith('s3://'),
-      parts: s3Uri.split('/')
+      prevS3Uri: prevS3UriRef.current,
+      hasAudioRef: !!audioRef.current,
+      shouldPlay,
+      playerState,
+      loadingState,
+      audioSrc: currentAudio.src
     });
+    
     prevS3UriRef.current = s3Uri;
     setLoadingState('loading');
     setError(null);
@@ -267,21 +284,24 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         const s3Info = extractS3Info(s3Uri);
         console.log('AudioPlayer - Getting presigned URL for:', {
           s3Info,
-          originalUri: s3Uri,
-          bucket: s3Info.bucket,
-          key: s3Info.key,
-          keyLength: s3Info.key.length,
-          keyIsEmpty: s3Info.key.trim() === ''
+          s3Uri,
+          shouldPlay,
+          playerState,
+          loadingState,
+          hasAudioRef: !!audioRef.current,
+          audioSrc: currentAudio.src
         });
 
         try {
           const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
-          console.log('AudioPlayer - Got presigned URL response:', {
+          console.log('AudioPlayer - Got presigned URL:', {
             url: response.url,
-            urlLength: response.url.length,
-            hasProtocol: response.url.startsWith('http'),
-            bucket: s3Info.bucket,
-            key: s3Info.key
+            s3Uri,
+            shouldPlay,
+            playerState,
+            loadingState,
+            hasAudioRef: !!audioRef.current,
+            audioSrc: currentAudio.src
           });
           
           currentAudio.src = response.url;
@@ -291,15 +311,49 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setError(null);
           
           if (validatedTimestamp > 0) {
+            console.log('AudioPlayer - Setting initial timestamp:', {
+              timestamp: validatedTimestamp,
+              s3Uri,
+              shouldPlay,
+              playerState,
+              loadingState,
+              hasAudioRef: !!audioRef.current,
+              audioSrc: currentAudio.src
+            });
             currentAudio.currentTime = validatedTimestamp;
           }
 
           if (shouldPlay) {
             try {
+              console.log('AudioPlayer - Attempting to play', {
+                s3Uri,
+                shouldPlay,
+                playerState,
+                loadingState,
+                hasAudioRef: !!audioRef.current,
+                audioSrc: currentAudio.src
+              });
               await currentAudio.play();
+              console.log('AudioPlayer - Play successful', {
+                s3Uri,
+                shouldPlay,
+                playerState,
+                loadingState,
+                hasAudioRef: !!audioRef.current,
+                audioSrc: currentAudio.src
+              });
               setPlayerState('playing');
               onPlayStarted?.();
             } catch (err) {
+              console.error('AudioPlayer - Play failed:', {
+                error: err,
+                s3Uri,
+                shouldPlay,
+                playerState,
+                loadingState,
+                hasAudioRef: !!audioRef.current,
+                audioSrc: currentAudio.src
+              });
               if (err instanceof Error && err.name === 'NotAllowedError') {
                 // User interaction required for autoplay
                 setPlayerState('idle');
@@ -314,10 +368,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           // Handle presigned URL fetch errors
           console.error('AudioPlayer - Error getting presigned URL:', {
             error: err,
-            s3Info,
-            originalUri: s3Uri,
-            bucket: s3Info.bucket,
-            key: s3Info.key
+            s3Uri,
+            shouldPlay,
+            playerState,
+            loadingState,
+            hasAudioRef: !!audioRef.current,
+            audioSrc: currentAudio.src
           });
           const errorMessage = err instanceof Error ? err.message : 'Failed to access audio file';
           setError(`Access error: ${errorMessage}`);
@@ -330,8 +386,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         console.error('AudioPlayer - Error setting up audio:', {
           error: err,
           s3Uri,
-          type: typeof s3Uri,
-          length: s3Uri.length
+          shouldPlay,
+          playerState,
+          loadingState,
+          hasAudioRef: !!audioRef.current,
+          audioSrc: currentAudio.src
         });
         const errorMessage = err instanceof Error ? err.message : 'Failed to load audio';
         setError(errorMessage);
@@ -353,41 +412,53 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const handlePlayState = async () => {
       if (shouldPlay) {
         try {
-          console.log('AudioPlayer - Attempting to play from state change:', {
-            currentTime: currentAudio.currentTime,
-            duration: currentAudio.duration,
-            readyState: currentAudio.readyState,
-            networkState: currentAudio.networkState,
-            paused: currentAudio.paused,
-            ended: currentAudio.ended,
-            error: currentAudio.error,
-            src: currentAudio.src
+          // Wait for audio to be ready
+          if (loadingState !== 'ready') {
+            console.log('AudioPlayer - Waiting for audio to be ready');
+            await new Promise<void>((resolve) => {
+              const checkReady = () => {
+                if (loadingState === 'ready') {
+                  resolve();
+                } else {
+                  setTimeout(checkReady, 100);
+                }
+              };
+              checkReady();
+            });
+          }
+
+          console.log('AudioPlayer - Attempting to play from state change', {
+            s3Uri,
+            shouldPlay,
+            playerState,
+            loadingState,
+            hasAudioRef: !!audioRef.current,
+            audioSrc: currentAudio.src
           });
+          
           await currentAudio.play();
-          console.log('AudioPlayer - Play successful from state change:', {
-            currentTime: currentAudio.currentTime,
-            duration: currentAudio.duration,
-            readyState: currentAudio.readyState,
-            networkState: currentAudio.networkState,
-            paused: currentAudio.paused,
-            ended: currentAudio.ended,
-            error: currentAudio.error,
-            src: currentAudio.src
+          console.log('AudioPlayer - Play successful from state change', {
+            s3Uri,
+            shouldPlay,
+            playerState,
+            loadingState,
+            hasAudioRef: !!audioRef.current,
+            audioSrc: currentAudio.src
           });
+          
           setPlayerState('playing');
           onPlayStarted?.();
         } catch (err) {
           console.error('AudioPlayer - Play failed from state change:', {
             error: err,
-            currentTime: currentAudio.currentTime,
-            duration: currentAudio.duration,
-            readyState: currentAudio.readyState,
-            networkState: currentAudio.networkState,
-            paused: currentAudio.paused,
-            ended: currentAudio.ended,
-            error: currentAudio.error,
-            src: currentAudio.src
+            s3Uri,
+            shouldPlay,
+            playerState,
+            loadingState,
+            hasAudioRef: !!audioRef.current,
+            audioSrc: currentAudio.src
           });
+          
           if (err instanceof Error && err.name === 'NotAllowedError') {
             return;
           }
@@ -395,23 +466,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setPlayerState('error');
         }
       } else {
-        console.log('AudioPlayer - Pausing from state change:', {
-          currentTime: currentAudio.currentTime,
-          duration: currentAudio.duration,
-          readyState: currentAudio.readyState,
-          networkState: currentAudio.networkState,
-          paused: currentAudio.paused,
-          ended: currentAudio.ended,
-          error: currentAudio.error,
-          src: currentAudio.src
+        console.log('AudioPlayer - Pausing from state change', {
+          s3Uri,
+          shouldPlay,
+          playerState,
+          loadingState,
+          hasAudioRef: !!audioRef.current,
+          audioSrc: currentAudio.src
         });
+        
         currentAudio.pause();
         setPlayerState('idle');
       }
     };
 
     handlePlayState();
-  }, [shouldPlay, audioUrl, onPlayStarted]);
+  }, [shouldPlay, audioUrl, onPlayStarted, loadingState, s3Uri, playerState]);
 
   // Save resume state
   useEffect(() => {
@@ -431,14 +501,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }
 
   const extractS3Info = (s3Uri: string) => {
-    console.log('Extracting S3 info from URI:', {
-      s3Uri,
-      type: typeof s3Uri,
-      length: s3Uri.length,
-      isEmpty: s3Uri.trim() === '',
-      hasProtocol: s3Uri.startsWith('s3://'),
-      parts: s3Uri.split('/')
-    });
+    console.log('Extracting S3 info from URI:', s3Uri);
     
     // Validate input
     if (!s3Uri || s3Uri.trim() === '') {
@@ -472,14 +535,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       throw new Error('Invalid file type. Only audio files (mp3, wav, m4a, ogg) are supported.');
     }
     
-    console.log('Extracted S3 info:', {
-      bucket,
-      key,
-      keyLength: key.length,
-      keyIsEmpty: key.trim() === '',
-      hasValidExtension,
-      originalUri: s3Uri
-    });
+    console.log('Extracted S3 info:', { bucket, key });
     return { bucket, key };
   };
 
@@ -627,18 +683,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const audioElement = audioRef.current;
     if (!audioElement) return;
 
-    console.log('AudioPlayer - handlePlayPause called:', {
-      playerState,
-      currentTime: audioElement.currentTime,
-      duration: audioElement.duration,
-      readyState: audioElement.readyState,
-      networkState: audioElement.networkState,
-      paused: audioElement.paused,
-      ended: audioElement.ended,
-      error: audioElement.error,
-      src: audioElement.src
-    });
-
     if (playerState === 'playing') {
       audioElement.pause();
       setPlayerState('idle');
@@ -646,69 +690,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     } else {
       audioElement.play()
         .then(() => {
-          console.log('AudioPlayer - Play successful from button:', {
-            currentTime: audioElement.currentTime,
-            duration: audioElement.duration,
-            readyState: audioElement.readyState,
-            networkState: audioElement.networkState,
-            paused: audioElement.paused,
-            ended: audioElement.ended,
-            error: audioElement.error,
-            src: audioElement.src
-          });
           setPlayerState('playing');
           onPlay?.();
         })
         .catch((error) => {
-          console.error('AudioPlayer - Play failed from button:', {
-            error,
-            currentTime: audioElement.currentTime,
-            duration: audioElement.duration,
-            readyState: audioElement.readyState,
-            networkState: audioElement.networkState,
-            paused: audioElement.paused,
-            ended: audioElement.ended,
-            error: audioElement.error,
-            src: audioElement.src
-          });
+          console.error('Failed to play:', error);
           setPlayerState('error');
           setError('Playback failed');
         });
     }
   };
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
-        <div className="text-center text-muted-foreground">
-          <p>Loading audio...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
-        <div className="text-center text-red-500">
-          <p>{error}</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRetry}
-            className="mt-2"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show main player UI
   return (
     <div className="spotify-player fixed bottom-0 left-0 right-0">
       <div className="container mx-auto flex items-center justify-between px-4">
@@ -817,12 +809,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           />
         </div>
       </div>
-      <audio
-        ref={audioRef}
-        onCanPlay={handleReactCanPlay}
-        onError={handleReactError}
-        onLoadedMetadata={handleReactLoadedMetadata}
-      />
     </div>
   );
 }; 

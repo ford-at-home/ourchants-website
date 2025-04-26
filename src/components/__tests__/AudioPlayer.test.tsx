@@ -82,6 +82,15 @@ vi.stubGlobal('Audio', vi.fn().mockImplementation(() => {
   return audio;
 }));
 
+// Mock ResizeObserver
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
 describe('AudioPlayer', () => {
   const mockProps = {
     s3Uri: 's3://test-bucket/test-song.mp3',
