@@ -64,18 +64,16 @@ describe('SongList', () => {
     const mockSongs = {
       items: [
         { 
-          song_id: { S: '1' }, 
-          title: { S: 'Song 1' }, 
-          artist: { S: 'Artist 1' } 
+          song_id: '1', 
+          title: 'Song 1', 
+          artist: 'Artist 1' 
         },
         { 
-          song_id: { S: '2' }, 
-          title: { S: 'Song 2' }, 
-          artist: { S: 'Artist 2' } 
+          song_id: '2', 
+          title: 'Song 2', 
+          artist: 'Artist 2' 
         }
-      ],
-      total: 2,
-      has_more: false
+      ]
     };
     (fetchSongs as any).mockResolvedValue(mockSongs);
     
@@ -98,18 +96,16 @@ describe('SongList', () => {
     const mockSongs = {
       items: [
         { 
-          song_id: { S: '1' }, 
-          title: { S: 'Song 1' }, 
-          artist: { S: 'Artist 1' } 
+          song_id: '1', 
+          title: 'Song 1', 
+          artist: 'Artist 1' 
         },
         { 
-          song_id: { S: '2' }, 
-          title: { S: 'Song 2' }, 
-          artist: { S: 'Artist 2' } 
+          song_id: '2', 
+          title: 'Song 2', 
+          artist: 'Artist 2' 
         }
-      ],
-      total: 2,
-      has_more: false
+      ]
     };
     (fetchSongs as any).mockResolvedValue(mockSongs);
     
@@ -136,18 +132,16 @@ describe('SongList', () => {
     const mockSongs = {
       items: [
         { 
-          song_id: { S: '1' }, 
-          title: { S: 'Song 1' }, 
-          artist: { S: 'Artist 1' } 
+          song_id: '1', 
+          title: 'Song 1', 
+          artist: 'Artist 1' 
         },
         { 
-          song_id: { S: '2' }, 
-          title: { S: 'Song 2' }, 
-          artist: { S: 'Artist 2' } 
+          song_id: '2', 
+          title: 'Song 2', 
+          artist: 'Artist 2' 
         }
-      ],
-      total: 2,
-      has_more: false
+      ]
     };
     (fetchSongs as any).mockResolvedValue(mockSongs);
     
