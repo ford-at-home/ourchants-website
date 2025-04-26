@@ -96,6 +96,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   // All refs at the top
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevS3UriRef = useRef<string | null>(null);
+  const hasEventListenersRef = useRef(false);
 
   // Constants
   const MAX_RETRIES = 3;
@@ -104,36 +105,32 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     : 0;
 
   // Define event handlers with useCallback
-  const handleTimeUpdate = useCallback(() => {
-    const currentAudio = audioRef.current;
-    if (currentAudio) {
-      setCurrentTime(currentAudio.currentTime);
-    }
+  const handleTimeUpdate = useCallback((e: Event) => {
+    const currentAudio = e.target as HTMLAudioElement;
+    setCurrentTime(currentAudio.currentTime);
   }, []);
 
-  const handleLoadedMetadata = useCallback(() => {
-    const currentAudio = audioRef.current;
-    if (currentAudio) {
-      console.log('AudioPlayer - Metadata loaded:', {
-        duration: currentAudio.duration,
-        readyState: currentAudio.readyState,
-        networkState: currentAudio.networkState
-      });
-      setDuration(currentAudio.duration);
-    }
+  const handleLoadedMetadata = useCallback((e: Event) => {
+    const currentAudio = e.target as HTMLAudioElement;
+    console.log('AudioPlayer - Metadata loaded:', {
+      duration: currentAudio.duration,
+      readyState: currentAudio.readyState,
+      networkState: currentAudio.networkState
+    });
+    setDuration(currentAudio.duration);
   }, []);
 
-  const handleCanPlay = useCallback(() => {
+  const handleCanPlay = useCallback((e: Event) => {
     console.log('AudioPlayer - Can play event fired');
     setLoadingState('ready');
     setIsLoading(false);
   }, []);
 
-  const handlePlay = useCallback(() => {
+  const handlePlay = useCallback((e: Event) => {
     console.log('AudioPlayer - Play event fired');
   }, []);
 
-  const handlePause = useCallback(() => {
+  const handlePause = useCallback((e: Event) => {
     console.log('AudioPlayer - Pause event fired');
   }, []);
 
@@ -149,6 +146,36 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setIsLoading(false);
   }, []);
 
+  // React synthetic event handlers
+  const handleReactCanPlay = useCallback((e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    const audioElement = e.currentTarget;
+    console.log('AudioPlayer - Can play event fired');
+    setLoadingState('ready');
+    setIsLoading(false);
+  }, []);
+
+  const handleReactError = useCallback((e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    const audioElement = e.currentTarget;
+    console.error('AudioPlayer - Error event fired:', e);
+    console.error('Audio error details:', {
+      error: audioElement.error,
+      networkState: audioElement.networkState,
+      readyState: audioElement.readyState
+    });
+    setError('Failed to load audio');
+    setIsLoading(false);
+  }, []);
+
+  const handleReactLoadedMetadata = useCallback((e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    const audioElement = e.currentTarget;
+    console.log('AudioPlayer - Metadata loaded:', {
+      duration: audioElement.duration,
+      readyState: audioElement.readyState,
+      networkState: audioElement.networkState
+    });
+    setDuration(audioElement.duration);
+  }, []);
+
   // Initialize audio element
   useEffect(() => {
     console.log('AudioPlayer - Initializing audio element');
@@ -157,6 +184,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     audio.crossOrigin = "anonymous";
     audioRef.current = audio;
 
+    // Add event listeners
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('canplay', handleCanPlay);
@@ -166,14 +194,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     return () => {
       console.log('AudioPlayer - Cleaning up audio element');
-      audio.pause();
-      audio.src = '';
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('error', handleError);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        audioRef.current.removeEventListener('canplay', handleCanPlay);
+        audioRef.current.removeEventListener('play', handlePlay);
+        audioRef.current.removeEventListener('pause', handlePause);
+        audioRef.current.removeEventListener('error', handleError);
+      }
     };
   }, [handleTimeUpdate, handleLoadedMetadata, handleCanPlay, handlePlay, handlePause, handleError, volume]);
 
@@ -218,6 +249,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     const setupAudio = async () => {
       try {
+        // Reset audio state
         currentAudio.pause();
         currentAudio.src = '';
         currentAudio.load();
@@ -233,9 +265,30 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         try {
           const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
           console.log('AudioPlayer - Got presigned URL:', response.url);
+          
+          // Set the source and load the audio
           currentAudio.src = response.url;
           currentAudio.load();
           setAudioUrl(response.url);
+          
+          // Wait for the audio to be ready
+          await new Promise<void>((resolve, reject) => {
+            const handleCanPlay = () => {
+              currentAudio.removeEventListener('canplay', handleCanPlay);
+              currentAudio.removeEventListener('error', handleError);
+              resolve();
+            };
+            
+            const handleError = (e: Event) => {
+              currentAudio.removeEventListener('canplay', handleCanPlay);
+              currentAudio.removeEventListener('error', handleError);
+              reject(new Error('Failed to load audio'));
+            };
+            
+            currentAudio.addEventListener('canplay', handleCanPlay);
+            currentAudio.addEventListener('error', handleError);
+          });
+
           setLoadingState('ready');
           setError(null);
           setIsLoading(false);
@@ -265,17 +318,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             }
           }
         } catch (err) {
-          // Handle presigned URL fetch errors
           console.error('AudioPlayer - Error getting presigned URL:', err);
           const errorMessage = err instanceof Error ? err.message : 'Failed to access audio file';
           setError(`Access error: ${errorMessage}`);
           setPlayerState('error');
           setLoadingState('error');
           setIsLoading(false);
-          return;
         }
       } catch (err) {
-        // Handle S3 URI validation errors
         console.error('AudioPlayer - Error setting up audio:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to load audio';
         setError(errorMessage);
@@ -600,9 +650,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <audio
         ref={audioRef}
         src={audioUrl || undefined}
-        onCanPlay={handleCanPlay}
-        onError={handleError}
-        onLoadedMetadata={handleLoadedMetadata}
+        onCanPlay={handleReactCanPlay}
+        onError={handleReactError}
+        onLoadedMetadata={handleReactLoadedMetadata}
       />
     </div>
   );
