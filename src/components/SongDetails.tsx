@@ -13,7 +13,7 @@ export const SongDetails: React.FC = () => {
     queryKey: ['songs', id],
     queryFn: () => {
       console.log('SongDetails - Fetching songs');
-      return fetchSongs();
+      return fetchSongs({ limit: 100 }); // Fetch all songs to ensure we find the one we need
     }
   });
   const { setSelectedSong } = useAudio();

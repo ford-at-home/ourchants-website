@@ -22,7 +22,8 @@ export const SongList = () => {
       offset: (page - 1) * PAGE_SIZE
     }),
     retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Remove stale time to ensure fresh data on page change
+    refetchOnWindowFocus: false // Prevent refetching when window regains focus
   });
 
   const songs = data?.items || [];

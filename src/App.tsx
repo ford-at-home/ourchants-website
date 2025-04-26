@@ -60,7 +60,7 @@ function AppContent() {
     queryKey: ['songs'],
     queryFn: () => {
       console.log('App - Fetching songs');
-      return fetchSongs();
+      return fetchSongs({ limit: 100 }); // Fetch all songs for initial load
     }
   });
 
