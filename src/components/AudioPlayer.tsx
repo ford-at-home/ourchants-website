@@ -86,7 +86,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [isBuffering, setIsBuffering] = useState(false);
@@ -245,11 +245,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setLoadingState('loading');
     setError(null);
     setCurrentTime(0);
-    setIsLoading(true);
 
     const setupAudio = async () => {
       try {
-        // Reset audio state
         currentAudio.pause();
         currentAudio.src = '';
         currentAudio.load();
@@ -264,55 +262,22 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         try {
           const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
-          console.log('AudioPlayer - Got presigned URL:', response.url);
-          
-          // Set the source and load the audio
           currentAudio.src = response.url;
           currentAudio.load();
           setAudioUrl(response.url);
-          
-          // Wait for the audio to be ready
-          await new Promise<void>((resolve, reject) => {
-            const handleCanPlay = () => {
-              currentAudio.removeEventListener('canplay', handleCanPlay);
-              currentAudio.removeEventListener('error', handleError);
-              resolve();
-            };
-            
-            const handleError = (e: Event) => {
-              currentAudio.removeEventListener('canplay', handleCanPlay);
-              currentAudio.removeEventListener('error', handleError);
-              const audioElement = e.target as HTMLAudioElement;
-              console.error('Audio error details:', {
-                error: audioElement.error,
-                networkState: audioElement.networkState,
-                readyState: audioElement.readyState
-              });
-              reject(new Error('Failed to load audio'));
-            };
-            
-            currentAudio.addEventListener('canplay', handleCanPlay);
-            currentAudio.addEventListener('error', handleError);
-          });
-
           setLoadingState('ready');
           setError(null);
-          setIsLoading(false);
           
           if (validatedTimestamp > 0) {
-            console.log('AudioPlayer - Setting initial timestamp:', validatedTimestamp);
             currentAudio.currentTime = validatedTimestamp;
           }
 
           if (shouldPlay) {
             try {
-              console.log('AudioPlayer - Attempting to play');
               await currentAudio.play();
-              console.log('AudioPlayer - Play successful');
               setPlayerState('playing');
               onPlayStarted?.();
             } catch (err) {
-              console.error('AudioPlayer - Play failed:', err);
               if (err instanceof Error && err.name === 'NotAllowedError') {
                 // User interaction required for autoplay
                 setPlayerState('idle');
@@ -324,20 +289,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             }
           }
         } catch (err) {
+          // Handle presigned URL fetch errors
           console.error('AudioPlayer - Error getting presigned URL:', err);
           const errorMessage = err instanceof Error ? err.message : 'Failed to access audio file';
           setError(`Access error: ${errorMessage}`);
           setPlayerState('error');
           setLoadingState('error');
-          setIsLoading(false);
+          return;
         }
       } catch (err) {
+        // Handle S3 URI validation errors
         console.error('AudioPlayer - Error setting up audio:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to load audio';
         setError(errorMessage);
         setPlayerState('error');
         setLoadingState('error');
-        setIsLoading(false);
       }
     };
 
