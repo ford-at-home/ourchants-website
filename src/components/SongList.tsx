@@ -20,7 +20,7 @@ export const SongList: React.FC = () => {
     if (!data?.items) return [];
     const searchLower = searchTerm.toLowerCase();
     return data.items.filter(song => 
-      song.artist.S.toLowerCase().includes(searchLower)
+      song.artist?.S?.toLowerCase().includes(searchLower) || false
     );
   }, [data?.items, searchTerm]);
 
