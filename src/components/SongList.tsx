@@ -20,7 +20,7 @@ export const SongList: React.FC = () => {
     if (!data?.items) return [];
     const searchLower = searchTerm.toLowerCase();
     return data.items.filter(song => 
-      song.artist?.S?.toLowerCase().includes(searchLower) || false
+      (song.artist?.toLowerCase() || '').includes(searchLower)
     );
   }, [data?.items, searchTerm]);
 
@@ -55,9 +55,9 @@ export const SongList: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSongs.map((song) => (
           <SongCard
-            key={song.song_id.S}
-            title={song.title.S}
-            artist={song.artist.S}
+            key={song.song_id}
+            title={song.title}
+            artist={song.artist}
             onClick={() => setSelectedSong(song)}
           />
         ))}
