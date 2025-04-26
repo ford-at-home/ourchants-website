@@ -40,8 +40,16 @@ cdk list
 echo "Synthesizing CDK app..."
 cdk synth
 
-# Deploy only the frontend stack
-echo "Deploying OurChantsFrontendStack"
-cdk deploy OurChantsFrontendStack --require-approval never
+# If no arguments provided, deploy all stacks
+if [ $# -eq 0 ]; then
+    echo "No stacks specified, deploying all stacks..."
+    cdk deploy --all --require-approval never
+else
+    # Deploy each specified stack
+    for stack in "$@"; do
+        echo "Deploying $stack..."
+        cdk deploy "$stack" --require-approval never
+    done
+fi
 
 echo "CDK deployment complete!" 
