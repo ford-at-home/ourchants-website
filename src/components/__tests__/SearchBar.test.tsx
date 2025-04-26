@@ -12,10 +12,11 @@ describe('SearchBar', () => {
       <SearchBar 
         onSearch={mockOnSearch} 
         onFilterChange={mockOnFilterChange} 
+        value=""
       />
     );
 
-    expect(screen.getByPlaceholderText(/search by title, artist, or tradition/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/search by artist/i)).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toBeInTheDocument();
   });
 
@@ -27,6 +28,7 @@ describe('SearchBar', () => {
       <SearchBar 
         onSearch={mockOnSearch} 
         onFilterChange={mockOnFilterChange} 
+        value=""
       />
     );
 
@@ -44,6 +46,7 @@ describe('SearchBar', () => {
       <SearchBar 
         onSearch={mockOnSearch} 
         onFilterChange={mockOnFilterChange} 
+        value=""
       />
     );
 
