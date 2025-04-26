@@ -589,6 +589,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   };
 
+  // Show loading state
   if (isLoading) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
@@ -599,6 +600,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     );
   }
 
+  // Show error state
   if (error) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
@@ -609,6 +611,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     );
   }
 
+  // Show main player UI
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
       <div className="container mx-auto flex items-center justify-between">

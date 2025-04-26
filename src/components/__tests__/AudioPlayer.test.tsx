@@ -38,6 +38,50 @@ vi.mock('../../services/songApi', () => ({
   getPresignedUrl: vi.fn()
 }));
 
+// Mock HTMLMediaElement methods
+const mockPlay = vi.fn().mockResolvedValue(undefined);
+const mockPause = vi.fn();
+const mockLoad = vi.fn();
+
+// Mock event listeners
+const eventListeners: { [key: string]: Function[] } = {};
+
+// Mock the Audio constructor
+vi.stubGlobal('Audio', vi.fn().mockImplementation(() => {
+  const audio = {
+    play: mockPlay,
+    pause: mockPause,
+    load: mockLoad,
+    addEventListener: (type: string, listener: Function) => {
+      if (!eventListeners[type]) {
+        eventListeners[type] = [];
+      }
+      eventListeners[type].push(listener);
+    },
+    removeEventListener: (type: string, listener: Function) => {
+      if (eventListeners[type]) {
+        eventListeners[type] = eventListeners[type].filter(l => l !== listener);
+      }
+    },
+    currentTime: 0,
+    duration: 0,
+    volume: 1,
+    src: '',
+    error: null,
+    readyState: 4,
+    networkState: 2
+  };
+
+  // Trigger canplay event after a short delay
+  setTimeout(() => {
+    if (eventListeners['canplay']) {
+      eventListeners['canplay'].forEach(listener => listener());
+    }
+  }, 0);
+
+  return audio;
+}));
+
 describe('AudioPlayer', () => {
   const mockProps = {
     s3Uri: 's3://test-bucket/test-song.mp3',
@@ -54,6 +98,10 @@ describe('AudioPlayer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getPresignedUrl as any).mockResolvedValue({ url: 'https://test-url.com/audio.mp3' });
+    // Clear event listeners before each test
+    Object.keys(eventListeners).forEach(key => {
+      eventListeners[key] = [];
+    });
   });
 
   it('renders song details', async () => {
