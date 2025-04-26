@@ -282,6 +282,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             const handleError = (e: Event) => {
               currentAudio.removeEventListener('canplay', handleCanPlay);
               currentAudio.removeEventListener('error', handleError);
+              const audioElement = e.target as HTMLAudioElement;
+              console.error('Audio error details:', {
+                error: audioElement.error,
+                networkState: audioElement.networkState,
+                readyState: audioElement.readyState
+              });
               reject(new Error('Failed to load audio'));
             };
             
@@ -606,6 +612,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
         <div className="text-center text-red-500">
           <p>{error}</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRetry}
+            className="mt-2"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
         </div>
       </div>
     );
