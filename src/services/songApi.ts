@@ -3,6 +3,10 @@ import { Song } from "@/types/song";
 // API Gateway endpoint from CloudFormation stack
 const API_ENDPOINT = "https://hezyeh6kgj.execute-api.us-east-1.amazonaws.com";
 
+interface SongsResponse {
+  items: Song[];
+}
+
 export const getPresignedUrl = async (bucket: string, key: string): Promise<{ url: string }> => {
   try {
     const response = await fetch(`${API_ENDPOINT}/presigned-url`, {
@@ -23,27 +27,9 @@ export const getPresignedUrl = async (bucket: string, key: string): Promise<{ ur
   }
 };
 
-interface FetchSongsParams {
-  artist_filter?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export const fetchSongs = async (params?: FetchSongsParams): Promise<{ items: Song[]; total: number; has_more: boolean }> => {
+export const fetchSongs = async (): Promise<SongsResponse> => {
   try {
-    const queryParams = new URLSearchParams();
-    if (params?.artist_filter) {
-      // Add wildcard for partial matches
-      const searchTerm = params.artist_filter.toLowerCase();
-      queryParams.append('artist_filter', `*${searchTerm}*`);
-    }
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
-
-    const url = `${API_ENDPOINT}/songs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    console.log('Fetching songs from URL:', url);
-    
-    const response = await fetch(url, {
+    const response = await fetch(`${API_ENDPOINT}/songs`, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -52,9 +38,7 @@ export const fetchSongs = async (params?: FetchSongsParams): Promise<{ items: So
     if (!response.ok) {
       throw new Error("Failed to fetch songs");
     }
-    const data = await response.json();
-    console.log('API response:', data);
-    return data;
+    return await response.json();
   } catch (error) {
     console.error("Error fetching songs:", error);
     throw error;

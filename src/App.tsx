@@ -6,10 +6,9 @@ import About from './pages/About';
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { getResumeState, clearResumeState } from './utils/resumeState';
 import { ResumeDialog } from './components/ResumeDialog';
-import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from './services/songApi';
 import { getSongFromUrl } from './utils/urlParams';
 import { Routes, Route, useLocation, BrowserRouter, Link } from 'react-router-dom';
@@ -60,7 +59,7 @@ function AppContent() {
     queryKey: ['songs'],
     queryFn: () => {
       console.log('App - Fetching songs');
-      return fetchSongs({ limit: 100 }); // Fetch all songs for initial load
+      return fetchSongs();
     }
   });
 
@@ -80,7 +79,7 @@ function AppContent() {
         sharedSong,
         songs
       });
-      const song = songs.items?.find(s => s.song_id === sharedSong.songId);
+      const song = songs.items?.find(s => s.song_id.S === sharedSong.songId);
       if (song) {
         setSelectedSong(song);
         if (sharedSong.timestamp) {
@@ -98,12 +97,12 @@ function AppContent() {
       resumeState,
       songs
     });
-    const song = songs.items?.find(s => s.song_id === resumeState.songId);
+    const song = songs.items?.find(s => s.song_id.S === resumeState.songId);
     if (song) {
       setResumeSong({
-        id: song.song_id,
+        id: song.song_id.S,
         timestamp: resumeState.timestamp,
-        title: song.title
+        title: song.title.S
       });
       setShowResumeDialog(true);
     } else {
@@ -113,7 +112,7 @@ function AppContent() {
 
   const handleResume = () => {
     if (resumeSong && songs) {
-      const song = songs.items?.find(s => s.song_id === resumeSong.id);
+      const song = songs.items?.find(s => s.song_id.S === resumeSong.id);
       if (song) {
         setSelectedSong(song);
         resumeFromTimestamp(resumeSong.timestamp);

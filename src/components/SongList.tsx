@@ -1,204 +1,72 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { Play } from 'lucide-react';
+import { fetchSongs } from '../services/songApi';
 import { useAudio } from '../contexts/AudioContext';
 import { SearchBar } from './SearchBar';
-import { fetchSongs } from '../services/songApi';
-import { Song } from '../types/song';
+import { SongCard } from './SongCard';
+import { Button } from './ui/button';
+import { Loader2 } from 'lucide-react';
 
-const PAGE_SIZE = 20;
-const SEARCH_DELAY = 300; // 300ms delay for search
-
-export const SongList = () => {
+export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
-  const { setSelectedSong, selectedSong, handlePlay } = useAudio();
-  
-  // Debounce search term changes
-  useEffect(() => {
-    console.log('Search term changed:', searchTerm);
-    const timer = setTimeout(() => {
-      console.log('Setting debounced search term:', searchTerm);
-      setDebouncedSearchTerm(searchTerm);
-    }, SEARCH_DELAY);
+  const { setSelectedSong } = useAudio();
 
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-  
-  const { data, status, error, isLoading } = useQuery({
-    queryKey: ['songs', page, debouncedSearchTerm],
-    queryFn: () => {
-      console.log('Making API call with search term:', debouncedSearchTerm);
-      return fetchSongs({
-        artist_filter: debouncedSearchTerm,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE
-      });
-    },
-    retry: 1,
-    enabled: true,
-    refetchOnWindowFocus: false
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['songs'],
+    queryFn: fetchSongs
   });
 
-  // Log available artists when data changes
-  useEffect(() => {
-    if (data?.items) {
-      const artists = new Set(data.items.map(song => song.artist));
-      console.log('Current page artists:', Array.from(artists));
-      console.log('Total items:', data.total);
-      console.log('Has more:', data.has_more);
-    }
-  }, [data]);
-
-  // Log initial data load
-  useEffect(() => {
-    if (data?.items && !debouncedSearchTerm) {
-      console.log('Initial data load - all artists:', data.items.map(song => song.artist));
-    }
-  }, [data, debouncedSearchTerm]);
-
-  console.log('Query result:', { data, status, error, isLoading });
-
-  const songs = data?.items || [];
-  const total = data?.total || 0;
-  const hasMore = data?.has_more || false;
-
-  // Virtualization setup
-  const parentRef = React.useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: songs.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 80,
-    overscan: 5,
-  });
-
-  const handleSongClick = useCallback((song: Song) => {
-    if (!song || !song.song_id) return;
-    setSelectedSong(song);
-    // Start playback immediately when a song is selected
-    handlePlay();
-  }, [setSelectedSong, handlePlay]);
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
+  const filteredSongs = useMemo(() => {
+    if (!data?.items) return [];
+    const searchLower = searchTerm.toLowerCase();
+    return data.items.filter(song => 
+      song.artist.S.toLowerCase().includes(searchLower)
+    );
+  }, [data?.items, searchTerm]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
         <div className="text-muted-foreground text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p>Loading songs...</p>
         </div>
       </div>
     );
   }
 
-  if (status === 'error') {
+  if (error) {
     return (
-      <div className="text-destructive text-center py-10">
-        <p>Error loading songs. Please check your connection and try again.</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="spotify-button mt-4"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (songs.length === 0) {
-    return (
-      <div className="text-muted-foreground text-center py-10">
-        {searchTerm ? 'No songs found matching your search.' : 'No songs available.'}
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-muted-foreground text-center">
+          <p>Error loading songs. Please try again later.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-screen-xl mx-auto px-4 pb-24">
-      <SearchBar 
-        onSearch={setSearchTerm} 
-        onFilterChange={() => {}} 
+    <div className="space-y-4">
+      <SearchBar
         value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search by artist..."
       />
-      
-      <div
-        ref={parentRef}
-        className="h-[600px] overflow-auto"
-      >
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const song = songs[virtualRow.index];
-            if (!song || !song.song_id) return null;
-
-            return (
-              <div
-                key={song.song_id}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div
-                  className={`spotify-card flex items-center gap-4 ${
-                    selectedSong?.song_id === song.song_id ? 'bg-secondary/80' : ''
-                  }`}
-                  onClick={() => handleSongClick(song)}
-                >
-                  <div className="relative w-12 h-12 bg-secondary rounded-md overflow-hidden flex items-center justify-center group-hover:shadow-lg transition-all">
-                    <Play className="w-6 h-6 text-muted-foreground group-hover:text-primary" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Play className="w-6 h-6 text-foreground" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-foreground font-medium text-base hover:underline">{song.title}</h3>
-                    <p className="text-muted-foreground text-sm">{song.artist}</p>
-                    {song.album && (
-                      <p className="text-muted-foreground text-xs">{song.album}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredSongs.map((song) => (
+          <SongCard
+            key={song.song_id.S}
+            title={song.title.S}
+            artist={song.artist.S}
+            onClick={() => setSelectedSong(song)}
+          />
+        ))}
+      </div>
+      {filteredSongs.length === 0 && (
+        <div className="text-center text-muted-foreground">
+          <p>No songs found matching your search.</p>
         </div>
-      </div>
-
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center gap-4 mt-4">
-        <button
-          onClick={() => handlePageChange(page - 1)}
-          disabled={page === 1}
-          className="spotify-button"
-        >
-          Previous
-        </button>
-        <span className="text-muted-foreground">
-          Page {page} of {Math.ceil(total / PAGE_SIZE)}
-        </span>
-        <button
-          onClick={() => handlePageChange(page + 1)}
-          disabled={!hasMore}
-          className="spotify-button"
-        >
-          Next
-        </button>
-      </div>
+      )}
     </div>
   );
 };

@@ -1,25 +1,24 @@
 import React from 'react';
-import { Input } from "./ui/input";
-import { Search } from "lucide-react";
+import { Search } from 'lucide-react';
+import { Input } from './ui/input';
 
 interface SearchBarProps {
-  onSearch: (value: string) => void;
-  onFilterChange: (value: string) => void;
   value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
 }
 
-export const SearchBar = ({ onSearch, onFilterChange, value }: SearchBarProps) => {
+export const SearchBar: React.FC<SearchBarProps> = ({ value, onChange, placeholder = 'Search...' }) => {
   return (
-    <div className="flex gap-4 items-center mb-6 mt-8">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by artist..."
-          className="spotify-input pl-10"
-          value={value}
-          onChange={(e) => onSearch(e.target.value)}
-        />
-      </div>
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" data-testid="search-icon" />
+      <Input
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="pl-10"
+      />
     </div>
   );
 };

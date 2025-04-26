@@ -31,13 +31,11 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from '../services/songApi';
 import { Song } from '../types/song';
-import { getResumeState, clearResumeState } from '../utils/resumeState';
 
 interface AudioContextType {
   selectedSong: Song | null;
   setSelectedSong: (song: Song | null) => void;
   shouldPlay: boolean;
-  setShouldPlay: (shouldPlay: boolean) => void;
   handlePlay: () => void;
   handlePause: () => void;
   resumeFromTimestamp: (timestamp: number) => void;
@@ -47,8 +45,6 @@ interface AudioContextType {
 
 interface SongsResponse {
   items: Song[];
-  total: number;
-  has_more: boolean;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -121,88 +117,20 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const handleSkipNext = useCallback(() => {
-    console.log('AudioContext - handleSkipNext called:', {
-      isLoading,
-      selectedSong,
-      songsLength: songs.length,
-      hasMore: data?.has_more,
-      songs: songs
-    });
-
-    if (isLoading || !selectedSong || songs.length === 0) {
-      console.log('AudioContext - Skipping next - invalid state');
-      return;
-    }
-    
-    const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    console.log('AudioContext - Current index:', currentIndex);
-    
-    if (currentIndex === -1) {
-      console.log('AudioContext - Current song not found in list');
-      return;
-    }
-    
-    if (currentIndex === songs.length - 1 && data?.has_more) {
-      console.log('AudioContext - Loading next page');
-      setCurrentPage(prev => prev + 1);
-      // Don't return here, let the useEffect handle the new data
-    }
-    
-    // If we're not at the end of the current page, play the next song
+    if (!selectedSong || !songs.length) return;
+    const currentIndex = songs.findIndex(s => s.song_id.S === selectedSong.song_id.S);
     if (currentIndex < songs.length - 1) {
-      const nextIndex = currentIndex + 1;
-      const nextSong = songs[nextIndex];
-      console.log('AudioContext - Next song:', nextSong);
-      setSelectedSong(nextSong);
-      setShouldPlay(true);
+      setSelectedSong(songs[currentIndex + 1]);
     }
-  }, [selectedSong, songs, isLoading, data?.has_more]);
-
-  // Add effect to handle new page data
-  useEffect(() => {
-    if (data?.items && data.items.length > 0 && currentPage > 1) {
-      // When new page data arrives, select the first song
-      const firstSong = data.items[0];
-      console.log('AudioContext - New page loaded, selecting first song:', firstSong);
-      setSelectedSong(firstSong);
-      setShouldPlay(true);
-    }
-  }, [data, currentPage]);
+  }, [selectedSong, songs]);
 
   const handleSkipPrevious = useCallback(() => {
-    console.log('AudioContext - handleSkipPrevious called:', {
-      isLoading,
-      selectedSong,
-      songsLength: songs.length,
-      currentPage
-    });
-
-    if (isLoading || !selectedSong || songs.length === 0) {
-      console.log('AudioContext - Skipping previous - invalid state');
-      return;
+    if (!selectedSong || !songs.length) return;
+    const currentIndex = songs.findIndex(s => s.song_id.S === selectedSong.song_id.S);
+    if (currentIndex > 0) {
+      setSelectedSong(songs[currentIndex - 1]);
     }
-    
-    const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    console.log('AudioContext - Current index:', currentIndex);
-    
-    if (currentIndex === -1) {
-      console.log('AudioContext - Current song not found in list');
-      return;
-    }
-    
-    if (currentIndex === 0 && currentPage > 1) {
-      console.log('AudioContext - Loading previous page');
-      setCurrentPage(prev => prev - 1);
-      return;
-    }
-    
-    const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
-    const prevSong = songs[prevIndex];
-    console.log('AudioContext - Previous song:', prevSong);
-    
-    setSelectedSong(prevSong);
-    setShouldPlay(true);
-  }, [selectedSong, songs, isLoading, currentPage]);
+  }, [selectedSong, songs]);
 
   return (
     <AudioContext.Provider
@@ -210,12 +138,11 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         selectedSong,
         setSelectedSong,
         shouldPlay,
-        setShouldPlay,
         handlePlay,
         handlePause,
         resumeFromTimestamp,
         handleSkipNext,
-        handleSkipPrevious,
+        handleSkipPrevious
       }}
     >
       {children}

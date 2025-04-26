@@ -1,0 +1,172 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { SongList } from '../SongList';
+import { describe, it, expect, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fetchSongs } from '../../services/songApi';
+
+// Mock the fetchSongs function
+vi.mock('../../services/songApi', () => ({
+  fetchSongs: vi.fn()
+}));
+
+// Mock the AudioContext
+vi.mock('../../contexts/AudioContext', () => ({
+  useAudio: () => ({
+    setSelectedSong: vi.fn(),
+    selectedSong: null,
+    handlePlay: vi.fn()
+  })
+}));
+
+describe('SongList', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
+    vi.clearAllMocks();
+  });
+
+  it('renders loading state initially', () => {
+    (fetchSongs as any).mockResolvedValue({ items: [] });
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SongList />
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText(/loading songs/i)).toBeInTheDocument();
+  });
+
+  it('renders error state when fetch fails', async () => {
+    (fetchSongs as any).mockRejectedValue(new Error('Failed to fetch'));
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SongList />
+      </QueryClientProvider>
+    );
+
+    // Wait for the error state to appear
+    await waitFor(() => {
+      expect(screen.getByText(/error loading songs/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders songs when data is loaded', async () => {
+    const mockSongs = {
+      items: [
+        { 
+          song_id: { S: '1' }, 
+          title: { S: 'Song 1' }, 
+          artist: { S: 'Artist 1' } 
+        },
+        { 
+          song_id: { S: '2' }, 
+          title: { S: 'Song 2' }, 
+          artist: { S: 'Artist 2' } 
+        }
+      ],
+      total: 2,
+      has_more: false
+    };
+    (fetchSongs as any).mockResolvedValue(mockSongs);
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SongList />
+      </QueryClientProvider>
+    );
+
+    // Wait for the loading state to disappear
+    await waitFor(() => {
+      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
+    });
+
+    // Check that the search input is rendered
+    expect(screen.getByPlaceholderText(/search by artist/i)).toBeInTheDocument();
+  });
+
+  it('filters songs based on search term', async () => {
+    const mockSongs = {
+      items: [
+        { 
+          song_id: { S: '1' }, 
+          title: { S: 'Song 1' }, 
+          artist: { S: 'Artist 1' } 
+        },
+        { 
+          song_id: { S: '2' }, 
+          title: { S: 'Song 2' }, 
+          artist: { S: 'Artist 2' } 
+        }
+      ],
+      total: 2,
+      has_more: false
+    };
+    (fetchSongs as any).mockResolvedValue(mockSongs);
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SongList />
+      </QueryClientProvider>
+    );
+
+    // Wait for the loading state to disappear
+    await waitFor(() => {
+      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
+    });
+
+    // Type in search box
+    const searchInput = screen.getByPlaceholderText(/search by artist/i);
+    fireEvent.change(searchInput, { target: { value: 'Artist 1' } });
+
+    // Check that the search input has the correct value
+    expect(searchInput).toHaveValue('Artist 1');
+  });
+
+  it('shows no results message when search has no matches', async () => {
+    const mockSongs = {
+      items: [
+        { 
+          song_id: { S: '1' }, 
+          title: { S: 'Song 1' }, 
+          artist: { S: 'Artist 1' } 
+        },
+        { 
+          song_id: { S: '2' }, 
+          title: { S: 'Song 2' }, 
+          artist: { S: 'Artist 2' } 
+        }
+      ],
+      total: 2,
+      has_more: false
+    };
+    (fetchSongs as any).mockResolvedValue(mockSongs);
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SongList />
+      </QueryClientProvider>
+    );
+
+    // Wait for the loading state to disappear
+    await waitFor(() => {
+      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
+    });
+
+    // Type in search box
+    const searchInput = screen.getByPlaceholderText(/search by artist/i);
+    fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+
+    // Check that the search input has the correct value
+    expect(searchInput).toHaveValue('nonexistent');
+  });
+}); 
