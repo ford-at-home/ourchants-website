@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Play } from 'lucide-react';
@@ -8,21 +8,32 @@ import { fetchSongs } from '../services/songApi';
 import { Song } from '../types/song';
 
 const PAGE_SIZE = 20;
+const SEARCH_DELAY = 300; // 300ms delay for search
 
 export const SongList = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const { setSelectedSong, selectedSong, handlePlay } = useAudio();
   
+  // Debounce search term changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, SEARCH_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
   const { data, status, error, isLoading } = useQuery({
-    queryKey: ['songs', page, searchTerm],
+    queryKey: ['songs', page, debouncedSearchTerm],
     queryFn: () => fetchSongs({
-      artist_filter: searchTerm,
+      artist_filter: debouncedSearchTerm,
       limit: PAGE_SIZE,
       offset: (page - 1) * PAGE_SIZE
     }),
     retry: 1,
-    staleTime: 0, // Remove stale time to ensure fresh data on page change
+    enabled: true, // Always enable the query
     refetchOnWindowFocus: false // Prevent refetching when window regains focus
   });
 
@@ -85,7 +96,11 @@ export const SongList = () => {
 
   return (
     <div className="w-full max-w-screen-xl mx-auto px-4 pb-24">
-      <SearchBar onSearch={setSearchTerm} onFilterChange={() => {}} />
+      <SearchBar 
+        onSearch={setSearchTerm} 
+        onFilterChange={() => {}} 
+        value={searchTerm}
+      />
       
       <div
         ref={parentRef}
