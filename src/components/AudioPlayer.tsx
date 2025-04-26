@@ -86,7 +86,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [isBuffering, setIsBuffering] = useState(false);
@@ -531,114 +531,71 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   };
 
-  return (
-    <div className="spotify-player fixed bottom-0 left-0 right-0">
-      <div className="container mx-auto flex items-center justify-between px-4">
-        {/* Song Info */}
-        <div className="flex items-center space-x-4 min-w-[200px]">
-          <div className="flex flex-col">
-            {error ? (
-              <div className="flex items-center space-x-2">
-                <p className="text-red-500 text-sm">{error}</p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleRetry}
-                  className="text-spotify-green hover:text-spotify-green/80"
-                  data-testid="retry-button"
-                  aria-label="Retry loading audio"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <span className="text-sm font-medium text-foreground truncate">{title}</span>
-                <span className="text-xs text-muted-foreground truncate">{artist}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Player Controls */}
-        <div className="flex flex-col items-center flex-1 max-w-2xl">
-          <div className="flex items-center justify-center space-x-4 mb-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="spotify-button w-8 h-8 p-0 text-foreground"
-              onClick={handleSkipPrevious}
-              aria-label="Previous track"
-            >
-              <SkipBack className="h-5 w-5" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="spotify-button w-10 h-10 p-0 text-foreground"
-              onClick={handlePlayPause}
-              aria-label={playerState === 'playing' ? "Pause" : "Play"}
-            >
-              {playerState === 'playing' ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="spotify-button w-8 h-8 p-0 text-foreground"
-              onClick={handleSkipNext}
-              aria-label="Next track"
-            >
-              <SkipForward className="h-5 w-5" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className={getLoopButtonClass()}
-              onClick={toggleLoop}
-              aria-label={`Loop ${loopMode}`}
-              title={loopMode === 'off' ? 'Loop Off' : loopMode === 'all' ? 'Loop All' : 'Loop One'}
-            >
-              {getLoopIcon()}
-            </Button>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="w-full flex items-center space-x-2">
-            <span className="text-xs text-muted-foreground w-10 text-right">
-              {formatTime(currentTime)}
-            </span>
-            <Slider
-              value={[currentTime]}
-              max={duration}
-              min={0}
-              step={1}
-              onValueChange={handleTimeChange}
-              aria-label="Playback progress"
-              className="w-full"
-            />
-            <span className="text-xs text-muted-foreground w-10">
-              {formatTime(duration)}
-            </span>
-          </div>
-        </div>
-
-        {/* Volume Control */}
-        <div className="flex items-center space-x-2 min-w-[150px]">
-          <Volume2 className="h-4 w-4 text-muted-foreground" />
-          <Slider
-            value={[volume * 100]}
-            max={100}
-            min={0}
-            step={1}
-            onValueChange={handleVolumeChange}
-            aria-label="Volume"
-            className="w-24"
-          />
+  if (isLoading) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+        <div className="text-center text-muted-foreground">
+          <p>Loading audio...</p>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+        <div className="text-center text-red-500">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+      <div className="container mx-auto flex items-center justify-between">
+        <div className="flex-1">
+          <h3 className="text-foreground font-medium">{title}</h3>
+          <p className="text-muted-foreground text-sm">{artist}</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSkipPrevious}
+            className="h-10 w-10"
+          >
+            <SkipBack className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePlayPause}
+            className="h-10 w-10"
+          >
+            {playerState === 'playing' ? (
+              <Pause className="h-5 w-5" />
+            ) : (
+              <Play className="h-5 w-5" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSkipNext}
+            className="h-10 w-10"
+          >
+            <SkipForward className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+      <audio
+        ref={audioRef}
+        src={audioUrl || undefined}
+        onCanPlay={handleCanPlay}
+        onError={handleError}
+        onLoadedMetadata={handleLoadedMetadata}
+      />
     </div>
   );
 }; 
