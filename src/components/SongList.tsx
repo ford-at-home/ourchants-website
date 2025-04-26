@@ -46,9 +46,18 @@ export const SongList = () => {
   useEffect(() => {
     if (data?.items) {
       const artists = new Set(data.items.map(song => song.artist));
-      console.log('Available artists:', Array.from(artists));
+      console.log('Current page artists:', Array.from(artists));
+      console.log('Total items:', data.total);
+      console.log('Has more:', data.has_more);
     }
   }, [data]);
+
+  // Log initial data load
+  useEffect(() => {
+    if (data?.items && !debouncedSearchTerm) {
+      console.log('Initial data load - all artists:', data.items.map(song => song.artist));
+    }
+  }, [data, debouncedSearchTerm]);
 
   console.log('Query result:', { data, status, error, isLoading });
 
