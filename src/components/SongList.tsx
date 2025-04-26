@@ -18,7 +18,9 @@ export const SongList = () => {
   
   // Debounce search term changes
   useEffect(() => {
+    console.log('Search term changed:', searchTerm);
     const timer = setTimeout(() => {
+      console.log('Setting debounced search term:', searchTerm);
       setDebouncedSearchTerm(searchTerm);
     }, SEARCH_DELAY);
 
@@ -27,15 +29,20 @@ export const SongList = () => {
   
   const { data, status, error, isLoading } = useQuery({
     queryKey: ['songs', page, debouncedSearchTerm],
-    queryFn: () => fetchSongs({
-      artist_filter: debouncedSearchTerm,
-      limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE
-    }),
+    queryFn: () => {
+      console.log('Making API call with search term:', debouncedSearchTerm);
+      return fetchSongs({
+        artist_filter: debouncedSearchTerm,
+        limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE
+      });
+    },
     retry: 1,
     enabled: true, // Always enable the query
     refetchOnWindowFocus: false // Prevent refetching when window regains focus
   });
+
+  console.log('Query result:', { data, status, error, isLoading });
 
   const songs = data?.items || [];
   const total = data?.total || 0;
