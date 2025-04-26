@@ -38,9 +38,17 @@ export const SongList = () => {
       });
     },
     retry: 1,
-    enabled: true, // Always enable the query
-    refetchOnWindowFocus: false // Prevent refetching when window regains focus
+    enabled: true,
+    refetchOnWindowFocus: false
   });
+
+  // Log available artists when data changes
+  useEffect(() => {
+    if (data?.items) {
+      const artists = new Set(data.items.map(song => song.artist));
+      console.log('Available artists:', Array.from(artists));
+    }
+  }, [data]);
 
   console.log('Query result:', { data, status, error, isLoading });
 

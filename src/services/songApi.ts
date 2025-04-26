@@ -32,7 +32,7 @@ interface FetchSongsParams {
 export const fetchSongs = async (params?: FetchSongsParams): Promise<{ items: Song[]; total: number; has_more: boolean }> => {
   try {
     const queryParams = new URLSearchParams();
-    if (params?.artist_filter) queryParams.append('artist_filter', params.artist_filter);
+    if (params?.artist_filter) queryParams.append('artist_filter', params.artist_filter.toLowerCase());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
 
