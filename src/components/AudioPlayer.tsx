@@ -353,13 +353,41 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const handlePlayState = async () => {
       if (shouldPlay) {
         try {
-          console.log('AudioPlayer - Attempting to play from state change');
+          console.log('AudioPlayer - Attempting to play from state change:', {
+            currentTime: currentAudio.currentTime,
+            duration: currentAudio.duration,
+            readyState: currentAudio.readyState,
+            networkState: currentAudio.networkState,
+            paused: currentAudio.paused,
+            ended: currentAudio.ended,
+            error: currentAudio.error,
+            src: currentAudio.src
+          });
           await currentAudio.play();
-          console.log('AudioPlayer - Play successful from state change');
+          console.log('AudioPlayer - Play successful from state change:', {
+            currentTime: currentAudio.currentTime,
+            duration: currentAudio.duration,
+            readyState: currentAudio.readyState,
+            networkState: currentAudio.networkState,
+            paused: currentAudio.paused,
+            ended: currentAudio.ended,
+            error: currentAudio.error,
+            src: currentAudio.src
+          });
           setPlayerState('playing');
           onPlayStarted?.();
         } catch (err) {
-          console.error('AudioPlayer - Play failed from state change:', err);
+          console.error('AudioPlayer - Play failed from state change:', {
+            error: err,
+            currentTime: currentAudio.currentTime,
+            duration: currentAudio.duration,
+            readyState: currentAudio.readyState,
+            networkState: currentAudio.networkState,
+            paused: currentAudio.paused,
+            ended: currentAudio.ended,
+            error: currentAudio.error,
+            src: currentAudio.src
+          });
           if (err instanceof Error && err.name === 'NotAllowedError') {
             return;
           }
@@ -367,7 +395,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setPlayerState('error');
         }
       } else {
-        console.log('AudioPlayer - Pausing from state change');
+        console.log('AudioPlayer - Pausing from state change:', {
+          currentTime: currentAudio.currentTime,
+          duration: currentAudio.duration,
+          readyState: currentAudio.readyState,
+          networkState: currentAudio.networkState,
+          paused: currentAudio.paused,
+          ended: currentAudio.ended,
+          error: currentAudio.error,
+          src: currentAudio.src
+        });
         currentAudio.pause();
         setPlayerState('idle');
       }
@@ -590,6 +627,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const audioElement = audioRef.current;
     if (!audioElement) return;
 
+    console.log('AudioPlayer - handlePlayPause called:', {
+      playerState,
+      currentTime: audioElement.currentTime,
+      duration: audioElement.duration,
+      readyState: audioElement.readyState,
+      networkState: audioElement.networkState,
+      paused: audioElement.paused,
+      ended: audioElement.ended,
+      error: audioElement.error,
+      src: audioElement.src
+    });
+
     if (playerState === 'playing') {
       audioElement.pause();
       setPlayerState('idle');
@@ -597,11 +646,31 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     } else {
       audioElement.play()
         .then(() => {
+          console.log('AudioPlayer - Play successful from button:', {
+            currentTime: audioElement.currentTime,
+            duration: audioElement.duration,
+            readyState: audioElement.readyState,
+            networkState: audioElement.networkState,
+            paused: audioElement.paused,
+            ended: audioElement.ended,
+            error: audioElement.error,
+            src: audioElement.src
+          });
           setPlayerState('playing');
           onPlay?.();
         })
         .catch((error) => {
-          console.error('Failed to play:', error);
+          console.error('AudioPlayer - Play failed from button:', {
+            error,
+            currentTime: audioElement.currentTime,
+            duration: audioElement.duration,
+            readyState: audioElement.readyState,
+            networkState: audioElement.networkState,
+            paused: audioElement.paused,
+            ended: audioElement.ended,
+            error: audioElement.error,
+            src: audioElement.src
+          });
           setPlayerState('error');
           setError('Playback failed');
         });
