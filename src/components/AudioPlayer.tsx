@@ -103,6 +103,52 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     ? initialTimestamp 
     : 0;
 
+  // Define event handlers with useCallback
+  const handleTimeUpdate = useCallback(() => {
+    const currentAudio = audioRef.current;
+    if (currentAudio) {
+      setCurrentTime(currentAudio.currentTime);
+    }
+  }, []);
+
+  const handleLoadedMetadata = useCallback(() => {
+    const currentAudio = audioRef.current;
+    if (currentAudio) {
+      console.log('AudioPlayer - Metadata loaded:', {
+        duration: currentAudio.duration,
+        readyState: currentAudio.readyState,
+        networkState: currentAudio.networkState
+      });
+      setDuration(currentAudio.duration);
+    }
+  }, []);
+
+  const handleCanPlay = useCallback(() => {
+    console.log('AudioPlayer - Can play event fired');
+    setLoadingState('ready');
+    setIsLoading(false);
+  }, []);
+
+  const handlePlay = useCallback(() => {
+    console.log('AudioPlayer - Play event fired');
+  }, []);
+
+  const handlePause = useCallback(() => {
+    console.log('AudioPlayer - Pause event fired');
+  }, []);
+
+  const handleError = useCallback((e: Event) => {
+    console.error('AudioPlayer - Error event fired:', e);
+    const audioElement = e.target as HTMLAudioElement;
+    console.error('Audio error details:', {
+      error: audioElement.error,
+      networkState: audioElement.networkState,
+      readyState: audioElement.readyState
+    });
+    setError('Failed to load audio');
+    setIsLoading(false);
+  }, []);
+
   // Initialize audio element
   useEffect(() => {
     console.log('AudioPlayer - Initializing audio element');
@@ -110,48 +156,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     audio.volume = volume;
     audio.crossOrigin = "anonymous";
     audioRef.current = audio;
-
-    const handleTimeUpdate = () => {
-      const currentAudio = audioRef.current;
-      if (currentAudio) {
-        setCurrentTime(currentAudio.currentTime);
-      }
-    };
-
-    const handleLoadedMetadata = () => {
-      const currentAudio = audioRef.current;
-      if (currentAudio) {
-        console.log('AudioPlayer - Metadata loaded:', {
-          duration: currentAudio.duration,
-          readyState: currentAudio.readyState,
-          networkState: currentAudio.networkState
-        });
-        setDuration(currentAudio.duration);
-      }
-    };
-
-    const handleCanPlay = () => {
-      console.log('AudioPlayer - Can play event fired');
-      setLoadingState('ready');
-    };
-
-    const handlePlay = () => {
-      console.log('AudioPlayer - Play event fired');
-    };
-
-    const handlePause = () => {
-      console.log('AudioPlayer - Pause event fired');
-    };
-
-    const handleError = (e: Event) => {
-      console.error('AudioPlayer - Error event fired:', e);
-      const audioElement = e.target as HTMLAudioElement;
-      console.error('Audio error details:', {
-        error: audioElement.error,
-        networkState: audioElement.networkState,
-        readyState: audioElement.readyState
-      });
-    };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -171,7 +175,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('error', handleError);
     };
-  }, []);
+  }, [handleTimeUpdate, handleLoadedMetadata, handleCanPlay, handlePlay, handlePause, handleError, volume]);
 
   // Handle loop mode changes
   useEffect(() => {
@@ -210,6 +214,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setLoadingState('loading');
     setError(null);
     setCurrentTime(0);
+    setIsLoading(true);
 
     const setupAudio = async () => {
       try {
@@ -233,6 +238,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setAudioUrl(response.url);
           setLoadingState('ready');
           setError(null);
+          setIsLoading(false);
           
           if (validatedTimestamp > 0) {
             console.log('AudioPlayer - Setting initial timestamp:', validatedTimestamp);
@@ -265,6 +271,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           setError(`Access error: ${errorMessage}`);
           setPlayerState('error');
           setLoadingState('error');
+          setIsLoading(false);
           return;
         }
       } catch (err) {
@@ -274,6 +281,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         setError(errorMessage);
         setPlayerState('error');
         setLoadingState('error');
+        setIsLoading(false);
       }
     };
 
