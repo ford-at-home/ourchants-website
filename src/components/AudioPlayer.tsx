@@ -227,16 +227,29 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     const handleError = (e: Event) => {
-      console.error('AudioPlayer - Error event fired:', {
-        error: e,
-        s3Uri,
-        shouldPlay,
-        playerState,
-        loadingState,
-        hasAudioRef: !!audioRef.current,
-        audioSrc: audioRef.current?.src,
-        audioError: (e.target as HTMLAudioElement).error
-      });
+      const audioElement = e.target as HTMLAudioElement;
+      const audioError = audioElement?.error;
+
+      // Log all errors except empty src errors
+      if (audioError && audioError.code !== 4) {
+        const errorMessage = audioError.message || 'Unknown playback error';
+        console.error('AudioPlayer - Error event fired:', {
+          error: e,
+          s3Uri,
+          shouldPlay,
+          playerState,
+          loadingState,
+          hasAudioRef: !!audioRef.current,
+          audioSrc: audioElement.src,
+          audioError,
+          errorMessage
+        });
+
+        // Update component state
+        setError(`Playback error: ${errorMessage}`);
+        setPlayerState('error');
+        setLoadingState({ state: 'error', error: errorMessage });
+      }
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -693,25 +706,25 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         {/* Song Info */}
         <div className="flex items-center space-x-4 min-w-[200px]">
           <div className="flex flex-col">
-            {error ? (
+            <div className="text-sm">
+              <span className="font-medium">{title}</span>
+              <span className="text-muted-foreground"> • </span>
+              <span className="text-muted-foreground">{artist}</span>
+            </div>
+            {loadingState.state === 'error' && (
               <div className="flex items-center space-x-2">
-                <p className="text-red-500 text-sm">{error}</p>
+                <p className="text-red-500 text-sm">{loadingState.error || 'Invalid S3 URI format'}</p>
                 <Button
+                  size="sm"
                   variant="ghost"
-                  size="icon"
-                  onClick={handleRetry}
-                  className="text-spotify-green hover:text-spotify-green/80"
-                  data-testid="retry-button"
+                  className="h-9 w-9 text-spotify-green hover:text-spotify-green/80"
                   aria-label="Retry loading audio"
+                  data-testid="retry-button"
+                  onClick={handleRetry}
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </div>
-            ) : (
-              <>
-                <span className="text-sm font-medium text-foreground truncate">{title}</span>
-                <span className="text-xs text-muted-foreground truncate">{artist}</span>
-              </>
             )}
           </div>
         </div>
@@ -735,6 +748,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               className="spotify-button w-10 h-10 p-0 text-foreground"
               onClick={handlePlayPause}
               aria-label={playerState === 'playing' ? "Pause" : "Play"}
+              data-testid="play-pause-button"
             >
               {playerState === 'playing' ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </Button>
@@ -792,6 +806,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             onValueChange={handleVolumeChange}
             aria-label="Volume"
             className="w-24"
+            data-testid="volume-slider"
           />
         </div>
       </div>

@@ -218,10 +218,20 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Ensure the song data is properly structured
     if (song) {
+      const filename = song.filename || song.s3_uri?.split('/').pop() || '';
+      if (!filename) {
+        console.error('Invalid song data - missing filename:', {
+          song,
+          s3Uri: song.s3_uri,
+          filename: song.filename
+        });
+        return;
+      }
+
       const processedSong = {
         ...song,
-        s3_uri: song.s3_uri || `s3://ourchants-songs/${song.filename || ''}`,
-        filename: song.filename || song.s3_uri?.split('/').pop() || '',
+        s3_uri: song.s3_uri || `s3://ourchants-songs/${filename}`,
+        filename: filename,
         filepath: song.filepath || song.s3_uri || ''
       };
 

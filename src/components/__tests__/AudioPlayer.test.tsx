@@ -28,58 +28,40 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { AudioPlayer } from '../AudioPlayer';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getPresignedUrl } from '../../services/songApi';
 
 // Mock the getPresignedUrl function
 vi.mock('../../services/songApi', () => ({
-  getPresignedUrl: vi.fn()
+  getPresignedUrl: vi.fn().mockResolvedValue({ url: 'https://test-url.com/audio.mp3' })
 }));
 
-// Mock HTMLMediaElement methods
-const mockPlay = vi.fn().mockResolvedValue(undefined);
-const mockPause = vi.fn();
-const mockLoad = vi.fn();
+// Mock HTMLMediaElement methods and state
+const mockAudio = {
+  play: vi.fn().mockResolvedValue(undefined),
+  pause: vi.fn(),
+  load: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  currentTime: 0,
+  duration: 0,
+  volume: 1,
+  src: '',
+  error: null as MediaError | null,
+  readyState: 4,
+  networkState: 2,
+  dispatchEvent: vi.fn()
+};
 
-// Mock event listeners
-const eventListeners: { [key: string]: Function[] } = {};
+// Keep track of the current mock instance
+let currentMockAudio = mockAudio;
 
 // Mock the Audio constructor
 vi.stubGlobal('Audio', vi.fn().mockImplementation(() => {
-  const audio = {
-    play: mockPlay,
-    pause: mockPause,
-    load: mockLoad,
-    addEventListener: (type: string, listener: Function) => {
-      if (!eventListeners[type]) {
-        eventListeners[type] = [];
-      }
-      eventListeners[type].push(listener);
-    },
-    removeEventListener: (type: string, listener: Function) => {
-      if (eventListeners[type]) {
-        eventListeners[type] = eventListeners[type].filter(l => l !== listener);
-      }
-    },
-    currentTime: 0,
-    duration: 0,
-    volume: 1,
-    src: '',
-    error: null,
-    readyState: 4,
-    networkState: 2
-  };
-
-  // Trigger canplay event after a short delay
-  setTimeout(() => {
-    if (eventListeners['canplay']) {
-      eventListeners['canplay'].forEach(listener => listener());
-    }
-  }, 0);
-
-  return audio;
+  currentMockAudio = { ...mockAudio };
+  return currentMockAudio;
 }));
 
 // Mock ResizeObserver
@@ -91,38 +73,73 @@ class MockResizeObserver {
 
 vi.stubGlobal('ResizeObserver', MockResizeObserver);
 
-describe('AudioPlayer', () => {
-  const mockProps = {
-    s3Uri: 's3://test-bucket/test-song.mp3',
-    title: 'Test Song',
-    artist: 'Test Artist',
-    songId: '123',
-    shouldPlay: false,
-    onPlay: vi.fn(),
-    onPause: vi.fn(),
-    onSkipNext: vi.fn(),
-    onSkipPrevious: vi.fn()
-  };
+const mockProps = {
+  s3Uri: 's3://ourchants-songs/test-song.mp3',
+  title: 'Test Song',
+  artist: 'Test Artist',
+  songId: '123',
+  shouldPlay: false,
+  onPlay: vi.fn(),
+  onPause: vi.fn(),
+} as const;
 
+describe('AudioPlayer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (getPresignedUrl as any).mockResolvedValue({ url: 'https://test-url.com/audio.mp3' });
-    // Clear event listeners before each test
-    Object.keys(eventListeners).forEach(key => {
-      eventListeners[key] = [];
-    });
+    currentMockAudio = { ...mockAudio };
   });
 
-  it('renders song details', async () => {
+  it('renders song details', () => {
     render(<AudioPlayer {...mockProps} />);
-    
-    // Wait for loading to complete
-    await screen.findByText(mockProps.title);
-    
-    // Verify song details
     expect(screen.getByText(mockProps.title)).toBeInTheDocument();
     expect(screen.getByText(mockProps.artist)).toBeInTheDocument();
   });
 
-  // Tests will go here
+  it('displays correct time format', () => {
+    render(<AudioPlayer {...mockProps} />);
+    
+    // Initial time should be 0:00 for current time and duration
+    const timeElements = screen.getAllByText('0:00');
+    expect(timeElements).toHaveLength(2);
+    expect(timeElements[0]).toHaveClass('text-muted-foreground'); // Current time
+    expect(timeElements[1]).toHaveClass('text-muted-foreground'); // Duration
+  });
+
+  it('handles skip controls', () => {
+    const onSkipNext = vi.fn();
+    const onSkipPrevious = vi.fn();
+    
+    render(
+      <AudioPlayer 
+        {...mockProps} 
+        onSkipNext={onSkipNext} 
+        onSkipPrevious={onSkipPrevious}
+      />
+    );
+
+    const nextButton = screen.getByLabelText('Next track');
+    const previousButton = screen.getByLabelText('Previous track');
+
+    fireEvent(nextButton, new MouseEvent('click', { bubbles: true }));
+    expect(onSkipNext).toHaveBeenCalled();
+
+    fireEvent(previousButton, new MouseEvent('click', { bubbles: true }));
+    expect(onSkipPrevious).toHaveBeenCalled();
+  });
+
+  it('handles loop mode toggle', () => {
+    render(<AudioPlayer {...mockProps} />);
+
+    const loopButton = screen.getByLabelText('Loop off');
+    
+    // Test loop mode cycling
+    fireEvent(loopButton, new MouseEvent('click', { bubbles: true }));
+    expect(screen.getByLabelText('Loop all')).toBeInTheDocument();
+    
+    fireEvent(loopButton, new MouseEvent('click', { bubbles: true }));
+    expect(screen.getByLabelText('Loop one')).toBeInTheDocument();
+    
+    fireEvent(loopButton, new MouseEvent('click', { bubbles: true }));
+    expect(screen.getByLabelText('Loop off')).toBeInTheDocument();
+  });
 }); 

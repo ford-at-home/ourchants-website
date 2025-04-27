@@ -89,8 +89,9 @@ describe('SongList', () => {
       expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
     });
 
-    // Check that the search input is rendered
-    expect(screen.getByPlaceholderText(/search by artist/i)).toBeInTheDocument();
+    // Check that the songs are rendered
+    expect(screen.getByText('Song 1')).toBeInTheDocument();
+    expect(screen.getByText('Song 2')).toBeInTheDocument();
   });
 
   it('filters songs based on search term', async () => {
@@ -123,8 +124,9 @@ describe('SongList', () => {
     const searchInput = screen.getByPlaceholderText(/search by artist/i);
     fireEvent.change(searchInput, { target: { value: 'Artist 1' } });
 
-    // Check that the search input has the correct value
-    expect(searchInput).toHaveValue('Artist 1');
+    // Check that only the matching song is shown
+    expect(screen.getByText('Song 1')).toBeInTheDocument();
+    expect(screen.queryByText('Song 2')).not.toBeInTheDocument();
   });
 
   it('shows no results message when search has no matches', async () => {
@@ -157,8 +159,8 @@ describe('SongList', () => {
     const searchInput = screen.getByPlaceholderText(/search by artist/i);
     fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
-    // Check that the search input has the correct value
-    expect(searchInput).toHaveValue('nonexistent');
+    // Check that the no results message is shown
+    expect(screen.getByText('No songs found matching your search.')).toBeInTheDocument();
   });
 
   it('triggers playback when clicking a song', async () => {
