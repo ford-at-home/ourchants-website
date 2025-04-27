@@ -38,6 +38,7 @@ import { Spinner } from './ui/spinner';
 import { createSongUrl } from '../utils/urlParams';
 import { toast } from 'sonner';
 import { useSafeAudioPlay } from '../hooks/useSafeAudioPlay';
+import { buildAudioSrcFromS3Uri, isValidS3Uri } from '../utils/audioHelpers';
 
 type LoopMode = 'off' | 'all' | 'one';
 
@@ -297,22 +298,35 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         setError(null);
         setCurrentTime(0);
 
-        // Extract S3 info with enhanced validation
-        const s3Info = extractS3Info(s3Uri);
-        console.log('AudioPlayer - Getting presigned URL for:', {
-          s3Info,
+        // Validate S3 URI
+        if (!isValidS3Uri(s3Uri)) {
+          throw new Error('Invalid S3 URI format');
+        }
+
+        // Get CDN URL
+        const audioSrc = buildAudioSrcFromS3Uri(s3Uri);
+        if (!audioSrc) {
+          throw new Error('Failed to build audio source URL');
+        }
+
+        console.log('AudioPlayer - Setting audio source:', {
           s3Uri,
+          audioSrc,
           shouldPlay,
           playerState,
           loadingState,
-          hasAudioRef: !!audioRef.current,
-          audioSrc: currentAudio.src
+          hasAudioRef: !!audioRef.current
         });
 
-        try {
-          const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
-          console.log('AudioPlayer - Got presigned URL:', {
-            url: response.url,
+        currentAudio.src = audioSrc;
+        currentAudio.load();
+        setAudioUrl(audioSrc);
+        setLoadingState({ state: 'loaded' });
+        setError(null);
+        
+        if (validatedTimestamp > 0) {
+          console.log('AudioPlayer - Setting initial timestamp:', {
+            timestamp: validatedTimestamp,
             s3Uri,
             shouldPlay,
             playerState,
@@ -320,86 +334,53 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             hasAudioRef: !!audioRef.current,
             audioSrc: currentAudio.src
           });
-          
-          currentAudio.src = response.url;
-          currentAudio.load();
-          setAudioUrl(response.url);
-          setLoadingState({ state: 'loaded' });
-          setError(null);
-          
-          if (validatedTimestamp > 0) {
-            console.log('AudioPlayer - Setting initial timestamp:', {
-              timestamp: validatedTimestamp,
+          currentAudio.currentTime = validatedTimestamp;
+        }
+
+        if (shouldPlay) {
+          try {
+            console.log('AudioPlayer - Attempting to play', {
               s3Uri,
+              audioSrc,
               shouldPlay,
               playerState,
               loadingState,
               hasAudioRef: !!audioRef.current,
               audioSrc: currentAudio.src
             });
-            currentAudio.currentTime = validatedTimestamp;
-          }
-
-          if (shouldPlay) {
-            try {
-              console.log('AudioPlayer - Attempting to play', {
-                s3Uri,
-                shouldPlay,
-                playerState,
-                loadingState,
-                hasAudioRef: !!audioRef.current,
-                audioSrc: currentAudio.src
-              });
-              await currentAudio.play();
-              console.log('AudioPlayer - Play successful', {
-                s3Uri,
-                shouldPlay,
-                playerState,
-                loadingState,
-                hasAudioRef: !!audioRef.current,
-                audioSrc: currentAudio.src
-              });
-              setPlayerState('playing');
-              onPlayStarted?.();
-            } catch (err) {
-              console.error('AudioPlayer - Play failed:', {
-                error: err,
-                s3Uri,
-                shouldPlay,
-                playerState,
-                loadingState,
-                hasAudioRef: !!audioRef.current,
-                audioSrc: currentAudio.src
-              });
-              if (err instanceof Error && err.name === 'NotAllowedError') {
-                // User interaction required for autoplay
-                setPlayerState('idle');
-                return;
-              }
-              const errorMessage = err instanceof Error ? err.message : 'Failed to start playback';
-              setError(`Playback error: ${errorMessage}`);
-              setPlayerState('error');
+            await currentAudio.play();
+            console.log('AudioPlayer - Play successful', {
+              s3Uri,
+              audioSrc,
+              shouldPlay,
+              playerState,
+              loadingState,
+              hasAudioRef: !!audioRef.current,
+              audioSrc: currentAudio.src
+            });
+            setPlayerState('playing');
+            onPlayStarted?.();
+          } catch (err) {
+            console.error('AudioPlayer - Play failed:', {
+              error: err,
+              s3Uri,
+              audioSrc,
+              shouldPlay,
+              playerState,
+              loadingState,
+              hasAudioRef: !!audioRef.current,
+              audioSrc: currentAudio.src
+            });
+            if (err instanceof Error && err.name === 'NotAllowedError') {
+              setPlayerState('idle');
+              return;
             }
+            const errorMessage = err instanceof Error ? err.message : 'Failed to start playback';
+            setError(`Playback error: ${errorMessage}`);
+            setPlayerState('error');
           }
-        } catch (err) {
-          // Handle presigned URL fetch errors
-          console.error('AudioPlayer - Error getting presigned URL:', {
-            error: err,
-            s3Uri,
-            shouldPlay,
-            playerState,
-            loadingState,
-            hasAudioRef: !!audioRef.current,
-            audioSrc: currentAudio.src
-          });
-          const errorMessage = err instanceof Error ? err.message : 'Failed to access audio file';
-          setError(`Access error: ${errorMessage}`);
-          setPlayerState('error');
-          setLoadingState({ state: 'error', error: errorMessage });
-          return;
         }
       } catch (err) {
-        // Handle S3 URI validation errors
         console.error('AudioPlayer - Error setting up audio:', {
           error: err,
           s3Uri,

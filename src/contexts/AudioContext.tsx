@@ -31,6 +31,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from '../services/songApi';
 import { Song } from '../types/song';
+import { isValidS3Uri } from '../utils/audioHelpers';
 
 interface AudioContextType {
   selectedSong: Song | null;
@@ -45,22 +46,6 @@ interface AudioContextType {
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
-
-const isValidS3Uri = (uri: string): boolean => {
-  if (!uri || typeof uri !== 'string') return false;
-  if (!uri.startsWith('s3://')) return false;
-  
-  const path = uri.slice(5);
-  const [bucket, ...keyParts] = path.split('/');
-  
-  if (!bucket || bucket.trim() === '') return false;
-  
-  const key = keyParts.join('/');
-  if (!key || key.trim() === '') return false;
-  
-  const validExtensions = ['.mp3', '.wav', '.m4a', '.ogg'];
-  return validExtensions.some(ext => key.toLowerCase().endsWith(ext));
-};
 
 export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
