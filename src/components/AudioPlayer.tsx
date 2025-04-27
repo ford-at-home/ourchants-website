@@ -290,8 +290,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
     const setupAudio = async () => {
       try {
+        // Clear the audio source first
         currentAudio.pause();
-        currentAudio.src = '';
+        currentAudio.removeAttribute('src');
         currentAudio.load();
 
         setLoadingState({ state: 'loading' });
@@ -321,6 +322,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         try {
           const response = await getPresignedUrl(s3Info.bucket, s3Info.key);
+          if (!response.url) {
+            throw new Error('No presigned URL returned');
+          }
+
           console.log('AudioPlayer - Got presigned URL:', {
             url: response.url,
             s3Uri,
@@ -331,16 +336,21 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             currentAudioSrc: currentAudio.src
           });
 
-          // Wait for the audio to be ready before setting the source
-          await new Promise<void>((resolve) => {
+          // Set up canplay listener before setting the source
+          const canPlayPromise = new Promise<void>((resolve) => {
             const handleCanPlay = () => {
               currentAudio.removeEventListener('canplay', handleCanPlay);
               resolve();
             };
             currentAudio.addEventListener('canplay', handleCanPlay);
-            currentAudio.src = response.url;
-            currentAudio.load();
           });
+
+          // Set the source and load
+          currentAudio.src = response.url;
+          currentAudio.load();
+
+          // Wait for canplay event
+          await canPlayPromise;
 
           setAudioUrl(response.url);
           setLoadingState({ state: 'loaded' });
