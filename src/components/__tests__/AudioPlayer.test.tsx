@@ -155,9 +155,18 @@ describe('AudioPlayer', () => {
     fireEvent(loopButton, new MouseEvent('click', { bubbles: true }));
     expect(screen.getByLabelText('Loop all')).toBeInTheDocument();
 
-    // Simulate song ending
-    const endedEvent = new Event('ended');
-    currentMockAudio.dispatchEvent(endedEvent);
+    // Verify event listener was added
+    expect(currentMockAudio.addEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
+
+    // Get the event listener function
+    const endedListener = currentMockAudio.addEventListener.mock.calls.find(
+      call => call[0] === 'ended'
+    )?.[1];
+
+    // Simulate song ending by calling the event listener directly
+    if (endedListener) {
+      endedListener();
+    }
 
     // Verify onSkipNext was called
     expect(onSkipNext).toHaveBeenCalled();
