@@ -52,7 +52,8 @@ const mockAudio = {
   error: null as MediaError | null,
   readyState: 4,
   networkState: 2,
-  dispatchEvent: vi.fn()
+  dispatchEvent: vi.fn(),
+  loop: false
 };
 
 // Keep track of the current mock instance
@@ -138,8 +139,27 @@ describe('AudioPlayer', () => {
     
     fireEvent(loopButton, new MouseEvent('click', { bubbles: true }));
     expect(screen.getByLabelText('Loop one')).toBeInTheDocument();
+    expect(currentMockAudio.loop).toBe(true);
     
     fireEvent(loopButton, new MouseEvent('click', { bubbles: true }));
     expect(screen.getByLabelText('Loop off')).toBeInTheDocument();
+    expect(currentMockAudio.loop).toBe(false);
+  });
+
+  it('handles loop all mode when song ends', () => {
+    const onSkipNext = vi.fn();
+    render(<AudioPlayer {...mockProps} onSkipNext={onSkipNext} />);
+
+    // Set to loop all mode
+    const loopButton = screen.getByLabelText('Loop off');
+    fireEvent(loopButton, new MouseEvent('click', { bubbles: true }));
+    expect(screen.getByLabelText('Loop all')).toBeInTheDocument();
+
+    // Simulate song ending
+    const endedEvent = new Event('ended');
+    currentMockAudio.dispatchEvent(endedEvent);
+
+    // Verify onSkipNext was called
+    expect(onSkipNext).toHaveBeenCalled();
   });
 }); 

@@ -670,6 +670,33 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     // Don't change play state when toggling loop
   };
 
+  // Add effect to update audio element loop property
+  useEffect(() => {
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+
+    audioElement.loop = loopMode === 'one';
+    console.log('AudioPlayer: Updated audio loop property', { loopMode, loop: audioElement.loop });
+  }, [loopMode]);
+
+  // Add effect to handle 'all' loop mode
+  useEffect(() => {
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+
+    const handleEnded = () => {
+      if (loopMode === 'all') {
+        console.log('AudioPlayer: Song ended in loop all mode, playing next song');
+        onSkipNext?.();
+      }
+    };
+
+    audioElement.addEventListener('ended', handleEnded);
+    return () => {
+      audioElement.removeEventListener('ended', handleEnded);
+    };
+  }, [loopMode, onSkipNext]);
+
   const getLoopButtonClass = () => {
     const baseClass = "spotify-button w-8 h-8 p-0";
     if (loopMode === 'off') return `${baseClass} text-muted-foreground hover:text-foreground`;
