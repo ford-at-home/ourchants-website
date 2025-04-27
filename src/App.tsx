@@ -79,7 +79,7 @@ function AppContent() {
         sharedSong,
         songs
       });
-      const song = songs.items?.find(s => s.song_id.S === sharedSong.songId);
+      const song = songs.find(s => s.song_id === sharedSong.songId);
       if (song) {
         setSelectedSong(song);
         if (sharedSong.timestamp) {
@@ -97,12 +97,12 @@ function AppContent() {
       resumeState,
       songs
     });
-    const song = songs.items?.find(s => s.song_id.S === resumeState.songId);
+    const song = songs.find(s => s.song_id === resumeState.songId);
     if (song) {
       setResumeSong({
-        id: song.song_id.S,
+        id: song.song_id,
         timestamp: resumeState.timestamp,
-        title: song.title.S
+        title: song.title
       });
       setShowResumeDialog(true);
     } else {
@@ -112,7 +112,7 @@ function AppContent() {
 
   const handleResume = () => {
     if (resumeSong && songs) {
-      const song = songs.items?.find(s => s.song_id.S === resumeSong.id);
+      const song = songs.find(s => s.song_id === resumeSong.id);
       if (song) {
         setSelectedSong(song);
         resumeFromTimestamp(resumeSong.timestamp);

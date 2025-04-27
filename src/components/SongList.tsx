@@ -17,12 +17,12 @@ export const SongList: React.FC = () => {
   });
 
   const filteredSongs = useMemo(() => {
-    if (!data?.items) return [];
+    if (!data) return [];
     const searchLower = searchTerm.toLowerCase();
-    return data.items.filter(song => 
+    return data.filter(song => 
       (song.artist?.toLowerCase() || '').includes(searchLower)
     );
-  }, [data?.items, searchTerm]);
+  }, [data, searchTerm]);
 
   if (isLoading) {
     return (
