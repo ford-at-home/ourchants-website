@@ -331,8 +331,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             currentAudioSrc: currentAudio.src
           });
 
-          currentAudio.src = response.url;
-          currentAudio.load();
+          // Wait for the audio to be ready before setting the source
+          await new Promise<void>((resolve) => {
+            const handleCanPlay = () => {
+              currentAudio.removeEventListener('canplay', handleCanPlay);
+              resolve();
+            };
+            currentAudio.addEventListener('canplay', handleCanPlay);
+            currentAudio.src = response.url;
+            currentAudio.load();
+          });
+
           setAudioUrl(response.url);
           setLoadingState({ state: 'loaded' });
           setError(null);
