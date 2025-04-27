@@ -292,7 +292,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       try {
         // Clear the audio source first
         currentAudio.pause();
-        currentAudio.removeAttribute('src');
+        currentAudio.src = '';
         currentAudio.load();
 
         setLoadingState({ state: 'loading' });
