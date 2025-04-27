@@ -11,11 +11,14 @@ vi.mock('../../services/songApi', () => ({
 }));
 
 // Mock the AudioContext
+const mockSetSelectedSong = vi.fn();
+const mockHandlePlay = vi.fn();
+
 vi.mock('../../contexts/AudioContext', () => ({
   useAudio: () => ({
-    setSelectedSong: vi.fn(),
+    setSelectedSong: mockSetSelectedSong,
     selectedSong: null,
-    handlePlay: vi.fn()
+    handlePlay: mockHandlePlay
   })
 }));
 
@@ -156,5 +159,37 @@ describe('SongList', () => {
 
     // Check that the search input has the correct value
     expect(searchInput).toHaveValue('nonexistent');
+  });
+
+  it('triggers playback when clicking a song', async () => {
+    const mockSongs = [
+      { 
+        song_id: '1', 
+        title: 'Song 1', 
+        artist: 'Artist 1',
+        s3_uri: 's3://test-bucket/song1.mp3'
+      }
+    ];
+    (fetchSongs as any).mockResolvedValue(mockSongs);
+    
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SongList />
+      </QueryClientProvider>
+    );
+
+    // Wait for songs to load
+    await waitFor(() => {
+      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
+    });
+
+    // Find and click the song element
+    const songElement = screen.getByText('Song 1').closest('div[role="button"]');
+    expect(songElement).toBeInTheDocument();
+    fireEvent.click(songElement!);
+
+    // Verify that both setSelectedSong and handlePlay were called
+    expect(mockSetSelectedSong).toHaveBeenCalledWith(mockSongs[0]);
+    expect(mockHandlePlay).toHaveBeenCalled();
   });
 }); 

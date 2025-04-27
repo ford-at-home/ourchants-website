@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 
 export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { setSelectedSong } = useAudio();
+  const { setSelectedSong, handlePlay } = useAudio();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['songs'],
@@ -23,6 +23,11 @@ export const SongList: React.FC = () => {
       (song.artist?.toLowerCase() || '').includes(searchLower)
     );
   }, [data, searchTerm]);
+
+  const handleSongClick = (song: any) => {
+    setSelectedSong(song);
+    handlePlay();
+  };
 
   if (isLoading) {
     return (
@@ -58,7 +63,7 @@ export const SongList: React.FC = () => {
             key={song.song_id}
             title={song.title}
             artist={song.artist}
-            onClick={() => setSelectedSong(song)}
+            onClick={() => handleSongClick(song)}
           />
         ))}
       </div>

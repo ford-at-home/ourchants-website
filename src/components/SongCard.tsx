@@ -13,6 +13,13 @@ export const SongCard: React.FC<SongCardProps> = ({ title, artist, onClick }) =>
     <div
       className="group relative bg-card rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick();
+        }
+      }}
     >
       <div className="flex items-center gap-4">
         <div className="relative w-12 h-12 bg-secondary rounded-md overflow-hidden flex items-center justify-center group-hover:shadow-lg transition-all">

@@ -57,7 +57,24 @@ interface AudioPlayerProps {
 
 type PlayerState = 'idle' | 'loading' | 'buffering' | 'playing' | 'error';
 
-type LoadingState = 'idle' | 'loading' | 'error' | 'ready' | 'loaded';
+interface LoadingStateIdle {
+  state: 'idle';
+}
+
+interface LoadingStateLoading {
+  state: 'loading';
+}
+
+interface LoadingStateLoaded {
+  state: 'loaded';
+}
+
+interface LoadingStateError {
+  state: 'error';
+  error?: string;
+}
+
+type LoadingState = LoadingStateIdle | LoadingStateLoading | LoadingStateLoaded | LoadingStateError;
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
   s3Uri, 
@@ -89,7 +106,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingState, setLoadingState] = useState<LoadingState>('idle');
+  const [loadingState, setLoadingState] = useState<LoadingState>({ state: 'idle' });
   const [isBuffering, setIsBuffering] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [loopMode, setLoopMode] = useState<LoopMode>('off');
@@ -183,7 +200,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         hasAudioRef: !!audioRef.current,
         audioSrc: audioRef.current?.src
       });
-      setLoadingState('ready');
+      setLoadingState({ state: 'loaded' });
     };
 
     const handlePlay = () => {
@@ -266,7 +283,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     });
     
     prevS3UriRef.current = s3Uri;
-    setLoadingState('loading');
+    setLoadingState({ state: 'loading' });
     setError(null);
     setCurrentTime(0);
 
@@ -276,7 +293,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         currentAudio.src = '';
         currentAudio.load();
 
-        setLoadingState('loading');
+        setLoadingState({ state: 'loading' });
         setError(null);
         setCurrentTime(0);
 
@@ -307,7 +324,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           currentAudio.src = response.url;
           currentAudio.load();
           setAudioUrl(response.url);
-          setLoadingState('ready');
+          setLoadingState({ state: 'loaded' });
           setError(null);
           
           if (validatedTimestamp > 0) {
@@ -378,7 +395,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           const errorMessage = err instanceof Error ? err.message : 'Failed to access audio file';
           setError(`Access error: ${errorMessage}`);
           setPlayerState('error');
-          setLoadingState('error');
+          setLoadingState({ state: 'error', error: errorMessage });
           return;
         }
       } catch (err) {
@@ -395,7 +412,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         const errorMessage = err instanceof Error ? err.message : 'Failed to load audio';
         setError(errorMessage);
         setPlayerState('error');
-        setLoadingState('error');
+        setLoadingState({ state: 'error', error: errorMessage });
       }
     };
 
@@ -412,19 +429,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const handlePlayState = async () => {
       if (shouldPlay) {
         try {
-          // Wait for audio to be ready
-          if (loadingState !== 'ready') {
-            console.log('AudioPlayer - Waiting for audio to be ready');
-            await new Promise<void>((resolve) => {
-              const checkReady = () => {
-                if (loadingState === 'ready') {
-                  resolve();
-                } else {
-                  setTimeout(checkReady, 100);
-                }
-              };
-              checkReady();
-            });
+          // Wait for audio to be loaded
+          while (loadingState.state === 'idle' || loadingState.state === 'loading') {
+            console.log('AudioPlayer - Waiting for audio to be loaded');
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          if (loadingState.state === 'error') {
+            console.error('AudioPlayer - Loading failed');
+            return;
           }
 
           console.log('AudioPlayer - Attempting to play from state change', {
@@ -561,7 +574,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const getLoadingText = () => {
-    switch (loadingState) {
+    switch (loadingState.state) {
       case 'loading':
         return 'Preparing...';
       case 'error':
@@ -586,7 +599,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     });
     
     setError(null);
-    setLoadingState('loading');
+    setLoadingState({ state: 'loading' });
     setPlayerState('idle');
     
     // Attempt to reload the audio
