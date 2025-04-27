@@ -34,7 +34,8 @@ export const fetchSongs = async (): Promise<Song[]> => {
     if (!response.ok) {
       throw new Error("Failed to fetch songs");
     }
-    return await response.json();
+    const data = await response.json();
+    return data.items || [];
   } catch (error) {
     console.error("Error fetching songs:", error);
     throw error;
