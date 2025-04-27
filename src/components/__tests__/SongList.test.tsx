@@ -34,7 +34,7 @@ describe('SongList', () => {
   });
 
   it('renders loading state initially', () => {
-    (fetchSongs as any).mockResolvedValue({ items: [] });
+    (fetchSongs as any).mockResolvedValue([]);
     
     render(
       <QueryClientProvider client={queryClient}>
@@ -61,20 +61,18 @@ describe('SongList', () => {
   });
 
   it('renders songs when data is loaded', async () => {
-    const mockSongs = {
-      items: [
-        { 
-          song_id: '1', 
-          title: 'Song 1', 
-          artist: 'Artist 1' 
-        },
-        { 
-          song_id: '2', 
-          title: 'Song 2', 
-          artist: 'Artist 2' 
-        }
-      ]
-    };
+    const mockSongs = [
+      { 
+        song_id: '1', 
+        title: 'Song 1', 
+        artist: 'Artist 1' 
+      },
+      { 
+        song_id: '2', 
+        title: 'Song 2', 
+        artist: 'Artist 2' 
+      }
+    ];
     (fetchSongs as any).mockResolvedValue(mockSongs);
     
     render(
@@ -93,20 +91,18 @@ describe('SongList', () => {
   });
 
   it('filters songs based on search term', async () => {
-    const mockSongs = {
-      items: [
-        { 
-          song_id: '1', 
-          title: 'Song 1', 
-          artist: 'Artist 1' 
-        },
-        { 
-          song_id: '2', 
-          title: 'Song 2', 
-          artist: 'Artist 2' 
-        }
-      ]
-    };
+    const mockSongs = [
+      { 
+        song_id: '1', 
+        title: 'Song 1', 
+        artist: 'Artist 1' 
+      },
+      { 
+        song_id: '2', 
+        title: 'Song 2', 
+        artist: 'Artist 2' 
+      }
+    ];
     (fetchSongs as any).mockResolvedValue(mockSongs);
     
     render(
@@ -129,20 +125,18 @@ describe('SongList', () => {
   });
 
   it('shows no results message when search has no matches', async () => {
-    const mockSongs = {
-      items: [
-        { 
-          song_id: '1', 
-          title: 'Song 1', 
-          artist: 'Artist 1' 
-        },
-        { 
-          song_id: '2', 
-          title: 'Song 2', 
-          artist: 'Artist 2' 
-        }
-      ]
-    };
+    const mockSongs = [
+      { 
+        song_id: '1', 
+        title: 'Song 1', 
+        artist: 'Artist 1' 
+      },
+      { 
+        song_id: '2', 
+        title: 'Song 2', 
+        artist: 'Artist 2' 
+      }
+    ];
     (fetchSongs as any).mockResolvedValue(mockSongs);
     
     render(
