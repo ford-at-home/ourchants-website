@@ -153,6 +153,32 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
   }, []);
 
+  // Loop mode effects
+  useEffect(() => {
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+
+    audioElement.loop = loopMode === 'one';
+    console.log('AudioPlayer: Updated audio loop property', { loopMode, loop: audioElement.loop });
+  }, [loopMode]);
+
+  useEffect(() => {
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
+
+    const handleEnded = () => {
+      if (loopMode === 'all') {
+        console.log('AudioPlayer: Song ended in loop all mode, playing next song');
+        onSkipNext?.();
+      }
+    };
+
+    audioElement.addEventListener('ended', handleEnded);
+    return () => {
+      audioElement.removeEventListener('ended', handleEnded);
+    };
+  }, [loopMode, onSkipNext]);
+
   // Initialize audio element
   useEffect(() => {
     console.log('AudioPlayer - Initializing audio element', {
@@ -669,33 +695,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setLoopMode(newMode);
     // Don't change play state when toggling loop
   };
-
-  // Add effect to update audio element loop property
-  useEffect(() => {
-    const audioElement = audioRef.current;
-    if (!audioElement) return;
-
-    audioElement.loop = loopMode === 'one';
-    console.log('AudioPlayer: Updated audio loop property', { loopMode, loop: audioElement.loop });
-  }, [loopMode]);
-
-  // Add effect to handle 'all' loop mode
-  useEffect(() => {
-    const audioElement = audioRef.current;
-    if (!audioElement) return;
-
-    const handleEnded = () => {
-      if (loopMode === 'all') {
-        console.log('AudioPlayer: Song ended in loop all mode, playing next song');
-        onSkipNext?.();
-      }
-    };
-
-    audioElement.addEventListener('ended', handleEnded);
-    return () => {
-      audioElement.removeEventListener('ended', handleEnded);
-    };
-  }, [loopMode, onSkipNext]);
 
   const getLoopButtonClass = () => {
     const baseClass = "spotify-button w-8 h-8 p-0";
