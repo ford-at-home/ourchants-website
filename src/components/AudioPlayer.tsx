@@ -680,24 +680,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const handlePlayPause = () => {
-    const audioElement = audioRef.current;
-    if (!audioElement) return;
-
     if (playerState === 'playing') {
-      audioElement.pause();
-      setPlayerState('idle');
       onPause?.();
     } else {
-      audioElement.play()
-        .then(() => {
-          setPlayerState('playing');
-          onPlay?.();
-        })
-        .catch((error) => {
-          console.error('Failed to play:', error);
-          setPlayerState('error');
-          setError('Playback failed');
-        });
+      onPlay?.();
     }
   };
 
