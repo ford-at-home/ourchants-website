@@ -10,123 +10,177 @@ A modern web application for exploring and listening to sacred chants, built wit
 - Share songs with timestamps
 - Responsive design for all devices
 - Progressive Web App capabilities
+- Advanced audio playback controls (play, pause, skip, loop modes)
+- Resume playback from last position
+- Deep linking and URL sharing
 
-## Architecture
+## Technical Architecture
 
-The application is built with:
-- **Frontend**: React + TypeScript
-- **Infrastructure**: AWS CDK (Python)
-- **Hosting**: S3 + CloudFront
-- **API**: API Gateway + Lambda
-- **Security**: WAF + HTTPS
+### Frontend Architecture
 
-### Key Components
+The application is built with a modern React stack:
+- **Core**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **State Management**: 
+  - React Context for global audio state
+  - React Query for server state
+  - Local state for component-specific data
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI
+- **Testing**: Vitest + React Testing Library
 
-1. **Frontend**
-   - React for UI
-   - TypeScript for type safety
-   - Vite for build tooling
-   - PWA capabilities
+### Key Technical Features
 
-2. **Infrastructure**
-   - S3 for static hosting
-   - CloudFront for CDN
-   - API Gateway for backend
-   - Route53 for DNS
-   - ACM for SSL
+1. **Audio Playback System**
+   - Sophisticated audio state management
+   - Multiple playback modes (normal, loop one, loop all)
+   - Progress tracking and resume functionality
+   - Error handling and recovery
+   - Cross-browser compatibility
 
-## Quick Start
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
+2. **State Management**
+   ```typescript
+   interface AudioContextType {
+     selectedSong: Song | null;
+     setSelectedSong: (song: Song | null) => void;
+     shouldPlay: boolean;
+     setShouldPlay: (shouldPlay: boolean) => void;
+     handlePlay: () => void;
+     handlePause: () => void;
+     resumeFromTimestamp: (timestamp: number) => void;
+     handleSkipNext: () => void;
+     handleSkipPrevious: () => void;
+   }
    ```
-3. Set up Python environment:
+
+3. **API Integration**
+   - RESTful API integration with AWS services
+   - Presigned URL generation for secure audio access
+   - Error handling and retry logic
+   - Caching and data invalidation
+
+### Infrastructure
+
+The application is deployed on AWS:
+- **Frontend Hosting**: S3 + CloudFront
+- **API Layer**: API Gateway + Lambda
+- **Security**: WAF + HTTPS
+- **CDN**: CloudFront for global distribution
+- **DNS**: Route53
+- **SSL**: ACM
+
+## Development Setup
+
+1. **Prerequisites**
+   - Node.js >= 20.0.0
+   - Python 3.x (for infrastructure)
+   - AWS CLI configured
+
+2. **Installation**
    ```bash
+   # Install dependencies
+   npm install
+
+   # Set up Python environment
    cd infrastructure
    python3 -m venv .venv
    source .venv/bin/activate
    pip install -r requirements.txt
    ```
-4. Build the project:
+
+3. **Development Commands**
    ```bash
+   # Start development server
+   npm run dev
+
+   # Run tests
+   npm run test
+   npm run test:watch
+
+   # Lint code
+   npm run lint
+
+   # Build project
    make build
    ```
-
-## Development
-
-- Run tests: `npm run test`
-- Run linter: `npm run lint`
-- Build project: `make build`
-- Deploy changes: `make deploy`
 
 ## Project Structure
 
 ```
 ourchants-website/
-├── docs/              # Documentation
-│   ├── DEPLOYMENT.md
-│   ├── DEVELOPMENT.md
-│   ├── API.md
-│   └── CONTRIBUTING.md
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── contexts/       # React context providers
+│   ├── hooks/         # Custom React hooks
+│   ├── pages/         # Page components
+│   ├── services/      # API and external service integrations
+│   ├── utils/         # Utility functions
+│   ├── types/         # TypeScript type definitions
+│   └── __tests__/     # Test files
 ├── infrastructure/    # CDK infrastructure code
-│   ├── ourchants_stack.py
-│   ├── domain_config.py
-│   └── deploy-cdk.sh
 ├── scripts/          # Utility scripts
-│   ├── bootstrap_domain.sh  # Domain setup verification
-│   ├── deploy_frontend.sh   # Frontend deployment
-│   ├── build-blog.ts        # Blog build process
-│   ├── check_cloudfront.sh  # CloudFront status check
-│   └── test-integration.ts  # Integration tests
-├── data/            # Configuration and data files
-│   ├── current-config.json
-│   ├── distribution-config.json
-│   └── other config files
-├── logs/            # Log files
-│   ├── mime_fix_*.log
-│   └── cloudfront_debug_*.log
-├── src/             # Frontend source code
-├── dist/            # Built frontend files
-├── cloudfront-config.json  # Main CloudFront config
-├── s3-cors.json     # S3 CORS configuration
-├── bucket-policy.json # S3 bucket policy
-└── Makefile        # Build and deployment commands
+├── docs/             # Documentation
+└── public/           # Static assets
 ```
 
-## Documentation
+## Key Components
 
-- [Development Guide](docs/DEVELOPMENT.md) - Detailed development workflow
-- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment instructions
-- [API Documentation](docs/API.md) - Backend API specifications
-- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
+### Audio Player
+The application features a sophisticated audio player with:
+- Play/pause controls
+- Skip next/previous functionality
+- Volume control
+- Progress tracking
+- Loop modes (off, all, one)
+- Error handling and recovery
+- URL sharing with timestamps
 
-## Blog Posts
+### State Management
+- Global audio context for playback control
+- React Query for server state
+- Local state for UI components
+- Memoization for performance optimization
 
-The website includes a blog section where we share insights about sacred chants, cultural traditions, and spiritual practices. To add new blog posts:
+### Error Handling
+- Comprehensive error boundaries
+- Retry logic for failed operations
+- User-friendly error messages
+- Graceful degradation
 
-1. Create a new markdown file in `src/content/blog/` using kebab-case naming (e.g., `my-new-post.md`)
-2. Add the required frontmatter at the top of the file:
-   ```markdown
-   ---
-   title: "Your Post Title"
-   slug: "your-post-slug"
-   date: "YYYY-MM-DD"
-   summary: "A short summary of your post."
-   published: true
-   ---
-   ```
-3. Write your content using standard markdown syntax
-4. Build the project as normal (`make build`) and the post will appear in the blog section
+## Testing Strategy
 
-For more detailed instructions, see our [Blog Post Guide](BLOG.md).
+The application includes:
+- Unit tests for components
+- Integration tests for audio playback
+- Error state testing
+- Edge case handling
+- Accessibility testing
 
-## Related Resources
+## Performance Optimizations
 
-- [Live Site](https://ourchants.com) - See the application in action
-- [Backend API](https://github.com/<ORG>/<REPO>-api) - Backend service implementation
-- [Deployment Guide](docs/DEPLOYMENT.md) - For deployment and debugging instructions
+1. **Code Splitting**
+   - Route-based code splitting
+   - Lazy loading of components
+
+2. **Caching**
+   - React Query for data caching
+   - Browser caching for static assets
+
+3. **Resource Management**
+   - Proper cleanup of audio resources
+   - Memory leak prevention
+
+## Security Considerations
+
+1. **Audio Access**
+   - Presigned URLs for secure audio access
+   - S3 URI validation
+   - Cross-origin resource sharing
+
+2. **API Security**
+   - HTTPS enforcement
+   - WAF protection
+   - Rate limiting
 
 ## Contributing
 
@@ -139,3 +193,12 @@ For more detailed instructions, see our [Blog Post Guide](BLOG.md).
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Related Resources
+
+- [Live Site](https://ourchants.com)
+- [Backend API](https://github.com/<ORG>/<REPO>-api)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Development Guide](docs/DEVELOPMENT.md)
+- [API Documentation](docs/API.md)
+- [Contributing Guide](docs/CONTRIBUTING.md)
