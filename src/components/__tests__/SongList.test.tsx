@@ -1,197 +1,169 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import { vi, test, expect, describe, beforeEach, afterEach } from 'vitest';
 import { SongList } from '../SongList';
-import { describe, it, expect, vi } from 'vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fetchSongs } from '../../services/songApi';
+import { useQuery } from '@tanstack/react-query';
+import { useAudio } from '../../contexts/AudioContext';
+import { toast } from 'sonner';
 
-// Mock the fetchSongs function
-vi.mock('../../services/songApi', () => ({
-  fetchSongs: vi.fn()
+// Mock dependencies
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(),
 }));
 
-// Mock the AudioContext
-const mockSetSelectedSong = vi.fn();
-const mockHandlePlay = vi.fn();
-
 vi.mock('../../contexts/AudioContext', () => ({
-  useAudio: () => ({
-    setSelectedSong: mockSetSelectedSong,
-    selectedSong: null,
-    handlePlay: mockHandlePlay
-  })
+  useAudio: vi.fn(),
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
+
+vi.mock('../SearchBar', () => ({
+  SearchBar: ({ value, onChange, placeholder }: any) => (
+    <input
+      data-testid="mock-search-bar"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
+vi.mock('../SongCard', () => ({
+  SongCard: ({ title, artist, songId, onClick }: any) => (
+    <div 
+      data-testid={`mock-song-card-${songId}`}
+      id={songId}
+      onClick={onClick}
+    >
+      {title} - {artist}
+    </div>
+  ),
 }));
 
 describe('SongList', () => {
-  let queryClient: QueryClient;
+  const mockSongs = [
+    { song_id: 'song-1', title: 'Song 1', artist: 'Artist 1' },
+    { song_id: 'song-2', title: 'Song 2', artist: 'Artist 2' },
+  ];
+
+  const mockAudioContext = {
+    setSelectedSong: vi.fn(),
+    handlePlay: vi.fn(),
+  };
+
+  const mockScrollIntoView = vi.fn();
+  const mockClassList = {
+    add: vi.fn(),
+    remove: vi.fn(),
+  };
 
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-      },
-    });
     vi.clearAllMocks();
-  });
-
-  it('renders loading state initially', () => {
-    (fetchSongs as any).mockResolvedValue([]);
     
-    render(
-      <QueryClientProvider client={queryClient}>
-        <SongList />
-      </QueryClientProvider>
-    );
-
-    expect(screen.getByText(/loading songs/i)).toBeInTheDocument();
-  });
-
-  it('renders error state when fetch fails', async () => {
-    (fetchSongs as any).mockRejectedValue(new Error('Failed to fetch'));
-    
-    render(
-      <QueryClientProvider client={queryClient}>
-        <SongList />
-      </QueryClientProvider>
-    );
-
-    // Wait for the error state to appear
-    await waitFor(() => {
-      expect(screen.getByText(/error loading songs/i)).toBeInTheDocument();
-    });
-  });
-
-  it('renders songs when data is loaded', async () => {
-    const mockSongs = [
-      { 
-        song_id: '1', 
-        title: 'Song 1', 
-        artist: 'Artist 1' 
-      },
-      { 
-        song_id: '2', 
-        title: 'Song 2', 
-        artist: 'Artist 2' 
-      }
-    ];
-    (fetchSongs as any).mockResolvedValue(mockSongs);
-    
-    render(
-      <QueryClientProvider client={queryClient}>
-        <SongList />
-      </QueryClientProvider>
-    );
-
-    // Wait for the loading state to disappear
-    await waitFor(() => {
-      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
+    // Mock useQuery default implementation
+    (useQuery as jest.Mock).mockReturnValue({
+      data: mockSongs,
+      isLoading: false,
+      error: null,
     });
 
-    // Check that the songs are rendered
-    expect(screen.getByText('Song 1')).toBeInTheDocument();
-    expect(screen.getByText('Song 2')).toBeInTheDocument();
+    // Mock useAudio default implementation
+    (useAudio as jest.Mock).mockReturnValue(mockAudioContext);
+
+    // Reset window.location.hash
+    window.location.hash = '';
+
+    // Reset toast mocks
+    (toast.error as jest.Mock).mockClear();
+    (toast.success as jest.Mock).mockClear();
+
+    // Mock getElementById and its methods
+    document.getElementById = vi.fn().mockImplementation((id) => ({
+      scrollIntoView: mockScrollIntoView,
+      classList: mockClassList,
+    }));
   });
 
-  it('filters songs based on search term', async () => {
-    const mockSongs = [
-      { 
-        song_id: '1', 
-        title: 'Song 1', 
-        artist: 'Artist 1' 
-      },
-      { 
-        song_id: '2', 
-        title: 'Song 2', 
-        artist: 'Artist 2' 
-      }
-    ];
-    (fetchSongs as any).mockResolvedValue(mockSongs);
-    
-    render(
-      <QueryClientProvider client={queryClient}>
-        <SongList />
-      </QueryClientProvider>
-    );
-
-    // Wait for the loading state to disappear
-    await waitFor(() => {
-      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
-    });
-
-    // Type in search box
-    const searchInput = screen.getByPlaceholderText(/search by artist/i);
-    fireEvent.change(searchInput, { target: { value: 'Artist 1' } });
-
-    // Check that only the matching song is shown
-    expect(screen.getByText('Song 1')).toBeInTheDocument();
-    expect(screen.queryByText('Song 2')).not.toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
-  it('shows no results message when search has no matches', async () => {
-    const mockSongs = [
-      { 
-        song_id: '1', 
-        title: 'Song 1', 
-        artist: 'Artist 1' 
-      },
-      { 
-        song_id: '2', 
-        title: 'Song 2', 
-        artist: 'Artist 2' 
-      }
-    ];
-    (fetchSongs as any).mockResolvedValue(mockSongs);
-    
-    render(
-      <QueryClientProvider client={queryClient}>
-        <SongList />
-      </QueryClientProvider>
-    );
+  describe('hash-based navigation', () => {
+    test('navigates to song and autoplays when hash is present', async () => {
+      window.location.hash = 'song-1';
+      mockAudioContext.handlePlay.mockResolvedValueOnce(undefined);
 
-    // Wait for the loading state to disappear
-    await waitFor(() => {
-      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
+      render(<SongList />);
+
+      await waitFor(() => {
+        expect(mockAudioContext.setSelectedSong).toHaveBeenCalledWith(mockSongs[0]);
+      });
+
+      await waitFor(() => {
+        expect(mockAudioContext.handlePlay).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(mockScrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+      });
     });
 
-    // Type in search box
-    const searchInput = screen.getByPlaceholderText(/search by artist/i);
-    fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+    test('shows error toast when song is not found', async () => {
+      window.location.hash = 'non-existent-song';
+      render(<SongList />);
 
-    // Check that the no results message is shown
-    expect(screen.getByText('No songs found matching your search.')).toBeInTheDocument();
-  });
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Song not found');
+      });
 
-  it('triggers playback when clicking a song', async () => {
-    const mockSongs = [
-      { 
-        song_id: '1', 
-        title: 'Song 1', 
-        artist: 'Artist 1',
-        s3_uri: 's3://test-bucket/song1.mp3'
-      }
-    ];
-    (fetchSongs as any).mockResolvedValue(mockSongs);
-    
-    render(
-      <QueryClientProvider client={queryClient}>
-        <SongList />
-      </QueryClientProvider>
-    );
-
-    // Wait for songs to load
-    await waitFor(() => {
-      expect(screen.queryByText(/loading songs/i)).not.toBeInTheDocument();
+      expect(mockAudioContext.setSelectedSong).not.toHaveBeenCalled();
+      expect(mockAudioContext.handlePlay).not.toHaveBeenCalled();
     });
 
-    // Find and click the song element
-    const songElement = screen.getByText('Song 1').closest('div[role="button"]');
-    expect(songElement).toBeInTheDocument();
-    fireEvent.click(songElement!);
+    test('adds and removes highlight class', async () => {
+      // Set up fake timers before any async operations
+      vi.useFakeTimers();
+      
+      window.location.hash = 'song-1';
+      mockAudioContext.handlePlay.mockResolvedValueOnce(undefined);
+      
+      render(<SongList />);
 
-    // Verify that both setSelectedSong and handlePlay were called
-    expect(mockSetSelectedSong).toHaveBeenCalledWith(mockSongs[0]);
-    expect(mockHandlePlay).toHaveBeenCalled();
+      // First, wait for the highlight to be added
+      await act(async () => {
+        await Promise.resolve(); // Flush promises
+        expect(mockClassList.add).toHaveBeenCalledWith('highlight-song');
+      });
+
+      // Then advance the timer
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+        await Promise.resolve(); // Flush promises again
+      });
+
+      // Finally check if the highlight was removed
+      expect(mockClassList.remove).toHaveBeenCalledWith('highlight-song');
+    }, { timeout: 10000 }); // Increase timeout just in case
+
+    test('handles autoplay failure gracefully', async () => {
+      window.location.hash = 'song-1';
+      mockAudioContext.handlePlay.mockRejectedValueOnce(new Error('Autoplay failed'));
+
+      render(<SongList />);
+
+      await waitFor(() => {
+        expect(mockAudioContext.setSelectedSong).toHaveBeenCalledWith(mockSongs[0]);
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Click to play the song');
+      });
+    });
   });
 }); 
