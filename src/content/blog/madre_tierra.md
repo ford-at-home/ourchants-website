@@ -1,7 +1,7 @@
 ---
 title: "🌎 Madre Tierra, Madre Vida / Mama Earth, Mama Life"
 slug: "madretierra"
-date: "2024-05-05"
+date: "2025-05-05"
 summary: "Notes on this chant."
 published: true
 ---
