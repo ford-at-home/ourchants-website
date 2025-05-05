@@ -51,6 +51,7 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [shouldPlay, setShouldPlay] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pendingSharedSong, setPendingSharedSong] = useState<{ songId: string; timestamp?: number } | null>(null);
 
   const { data: songs, isLoading } = useQuery<Song[]>({
     queryKey: ['songs'],
@@ -63,31 +64,41 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Check for shared song on mount
+  useEffect(() => {
+    const sharedSong = getSongFromUrl();
+    if (sharedSong) {
+      console.log('AudioContext - Found shared song in URL, storing as pending:', sharedSong);
+      setPendingSharedSong(sharedSong);
+    }
+  }, []);
+
   // Initialize with shared song if present
   useEffect(() => {
     const initializeSharedSong = async () => {
-      console.log('AudioContext - Initializing with shared song');
-      if (!songs || isLoading) {
-        console.log('AudioContext - Songs not yet available');
+      console.log('AudioContext - Checking for pending shared song:', {
+        pendingSharedSong,
+        songsLoaded: songs?.length,
+        isLoading
+      });
+
+      if (!songs || isLoading || !pendingSharedSong) {
         return;
       }
 
-      const sharedSong = getSongFromUrl();
-      if (sharedSong && !selectedSong) {
-        console.log('AudioContext - Found shared song in URL:', sharedSong);
-        const targetSong = songs.find(s => s.song_id === sharedSong.songId);
-        if (targetSong) {
-          console.log('AudioContext - Setting shared song:', targetSong);
-          setSelectedSong(targetSong);
-          setShouldPlay(true);
-        } else {
-          console.log('AudioContext - Shared song not found in data');
-        }
+      const targetSong = songs.find(s => s.song_id === pendingSharedSong.songId);
+      if (targetSong) {
+        console.log('AudioContext - Setting shared song:', targetSong);
+        setSelectedSong(targetSong);
+        setShouldPlay(true);
+        setPendingSharedSong(null); // Clear pending song
+      } else {
+        console.log('AudioContext - Shared song not found in data');
       }
     };
 
     initializeSharedSong();
-  }, [songs, isLoading]);
+  }, [songs, isLoading, pendingSharedSong]);
 
   // Add debug logging for state changes
   useEffect(() => {

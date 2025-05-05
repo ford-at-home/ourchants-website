@@ -35,7 +35,15 @@ export const fetchSongs = async (): Promise<Song[]> => {
       throw new Error("Failed to fetch songs");
     }
     const data = await response.json();
-    return data.items || [];
+    console.log('API Response:', data);
+    
+    // Handle both array and object responses
+    if (Array.isArray(data)) {
+      return data;
+    } else if (data && typeof data === 'object') {
+      return data.items || [];
+    }
+    return [];
   } catch (error) {
     console.error("Error fetching songs:", error);
     throw error;
