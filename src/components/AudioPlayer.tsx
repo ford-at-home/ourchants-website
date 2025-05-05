@@ -33,27 +33,27 @@ import { Play, Pause, SkipBack, SkipForward, Volume2, Loader2, RotateCcw, Share2
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { getPresignedUrl } from "../services/songApi";
-import { saveResumeState } from "../utils/resumeState";
 import { Spinner } from './ui/spinner';
 import { createSongUrl } from '../utils/urlParams';
 import { toast } from 'sonner';
 import { useSafeAudioPlay } from '../hooks/useSafeAudioPlay';
 import { buildAudioSrcFromS3Uri, isValidS3Uri, extractS3Info } from '../utils/audioHelpers';
+import { formatTime } from "../utils/time";
+import { cn } from "../lib/utils";
 
 type LoopMode = 'off' | 'all' | 'one';
 
 interface AudioPlayerProps {
   s3Uri: string;
-  title?: string;
-  artist?: string;
-  songId?: string;
-  onPlay?: () => void;
-  onPause?: () => void;
-  shouldPlay?: boolean;
-  onPlayStarted?: () => void;
-  initialTimestamp?: number;
+  title: string;
+  artist: string;
+  songId: string;
+  shouldPlay: boolean;
+  onPlay: () => void;
+  onPause: () => void;
   onSkipNext?: () => void;
   onSkipPrevious?: () => void;
+  initialTimestamp?: number;
 }
 
 type PlayerState = 'idle' | 'loading' | 'buffering' | 'playing' | 'error';
@@ -77,26 +77,24 @@ interface LoadingStateError {
 
 type LoadingState = LoadingStateIdle | LoadingStateLoading | LoadingStateLoaded | LoadingStateError;
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
-  s3Uri, 
-  title = 'Unknown Title',
-  artist = 'Unknown Artist',
+export function AudioPlayer({
+  s3Uri,
+  title,
+  artist,
   songId,
-  onPlay, 
-  onPause, 
-  shouldPlay = false,
-  onPlayStarted,
-  initialTimestamp,
+  shouldPlay,
+  onPlay,
+  onPause,
   onSkipNext,
-  onSkipPrevious
-}) => {
+  onSkipPrevious,
+  initialTimestamp = 0
+}: AudioPlayerProps) {
   console.log('AudioPlayer - Rendering with props:', {
     s3Uri,
     title,
     artist,
     songId,
-    shouldPlay,
-    initialTimestamp
+    shouldPlay
   });
 
   // All state hooks at the top
@@ -122,11 +120,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const { audioRef: safeAudioRef, play: safePlay, pause: safePause } = useSafeAudioPlay({
     onPlay: () => {
       setPlayerState('playing');
-      onPlay?.();
+      onPlay();
     },
     onPause: () => {
       setPlayerState('idle');
-      onPause?.();
+      onPause();
     },
     onError: (error) => {
       console.error('AudioPlayer - Playback error:', error);
@@ -428,7 +426,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 currentAudioSrc: currentAudio.src
               });
               setPlayerState('playing');
-              onPlayStarted?.();
             } catch (err) {
               console.error('AudioPlayer - Play failed:', {
                 error: err,
@@ -482,96 +479,47 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
 
     setupAudio();
-  }, [s3Uri, shouldPlay, validatedTimestamp, onPlayStarted]);
+  }, [s3Uri, shouldPlay, validatedTimestamp]);
 
   // Handle play/pause state changes
   useEffect(() => {
-    const currentAudio = audioRef.current;
-    if (!currentAudio || !audioUrl || window.location.search.includes('song=')) {
-      return;
-    }
-
     const handlePlayState = async () => {
-      if (shouldPlay) {
-        try {
-          // Wait for audio to be loaded
-          while (loadingState.state === 'idle' || loadingState.state === 'loading') {
-            console.log('AudioPlayer - Waiting for audio to be loaded');
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
+      console.log('AudioPlayer - handlePlayState called', {
+        shouldPlay,
+        audioUrl,
+        loadingState,
+        s3Uri,
+        playerState
+      });
 
-          if (loadingState.state === 'error') {
-            console.error('AudioPlayer - Loading failed');
-            return;
-          }
+      if (!audioUrl || loadingState.state !== 'loaded') {
+        console.log('AudioPlayer - Cannot play: audio not ready');
+        return;
+      }
 
-          console.log('AudioPlayer - Attempting to play from state change', {
-            s3Uri,
-            shouldPlay,
-            playerState,
-            loadingState,
-            hasAudioRef: !!audioRef.current,
-            audioSrc: currentAudio.src
-          });
-          
-          await currentAudio.play();
-          console.log('AudioPlayer - Play successful from state change', {
-            s3Uri,
-            shouldPlay,
-            playerState,
-            loadingState,
-            hasAudioRef: !!audioRef.current,
-            audioSrc: currentAudio.src
-          });
-          
+      const currentAudio = audioRef.current;
+      if (!currentAudio) {
+        console.error('AudioPlayer - No audio element available');
+        return;
+      }
+
+      try {
+        if (shouldPlay) {
+          await safePlay();
           setPlayerState('playing');
-          onPlayStarted?.();
-        } catch (err) {
-          console.error('AudioPlayer - Play failed from state change:', {
-            error: err,
-            s3Uri,
-            shouldPlay,
-            playerState,
-            loadingState,
-            hasAudioRef: !!audioRef.current,
-            audioSrc: currentAudio.src
-          });
-          
-          if (err instanceof Error && err.name === 'NotAllowedError') {
-            return;
-          }
-          setError('Playback failed');
-          setPlayerState('error');
+        } else {
+          await safePause();
+          setPlayerState('idle');
         }
-      } else {
-        console.log('AudioPlayer - Pausing from state change', {
-          s3Uri,
-          shouldPlay,
-          playerState,
-          loadingState,
-          hasAudioRef: !!audioRef.current,
-          audioSrc: currentAudio.src
-        });
-        
-        currentAudio.pause();
-        setPlayerState('idle');
+      } catch (error) {
+        console.error('AudioPlayer - Error handling play state:', error);
+        setPlayerState('error');
+        setError('Failed to control playback');
       }
     };
 
     handlePlayState();
-  }, [shouldPlay, audioUrl, onPlayStarted, loadingState, s3Uri, playerState]);
-
-  // Save resume state
-  useEffect(() => {
-    const currentAudio = audioRef.current;
-    if (!playerState || !songId || !currentAudio) return;
-
-    const interval = setInterval(() => {
-      saveResumeState(songId, currentAudio.currentTime);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [playerState, songId]);
+  }, [shouldPlay, audioUrl, loadingState, s3Uri, playerState, safePlay, safePause]);
 
   // Early return for missing s3Uri
   if (!s3Uri) {
@@ -591,12 +539,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     console.log('Setting volume to:', value[0]);
     audioElement.volume = value[0] / 100;
     setVolume(value[0] / 100);
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const getLoadingText = () => {
@@ -838,4 +780,4 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </div>
     </div>
   );
-}; 
+} 

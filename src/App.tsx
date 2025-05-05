@@ -7,15 +7,12 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { getResumeState, clearResumeState } from './utils/resumeState';
-import { ResumeDialog } from './components/ResumeDialog';
-import { fetchSongs } from './services/songApi';
-import { getSongFromUrl } from './utils/urlParams';
 import { Routes, Route, useLocation, BrowserRouter, Link } from 'react-router-dom';
 import { Home, Info, ClipboardList, BookOpen } from 'lucide-react';
 import BlogList from './components/BlogList';
 import BlogPost from './components/BlogPost';
 import { AudioPlayer } from './components/AudioPlayer';
+import { fetchSongs } from './services/songApi';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
@@ -51,80 +48,12 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const location = useLocation();
-  const [showResumeDialog, setShowResumeDialog] = useState(false);
-  const [resumeSong, setResumeSong] = useState<{ id: string; timestamp: number; title: string } | null>(null);
-  const { setSelectedSong, resumeFromTimestamp, selectedSong, shouldPlay, handlePlay, handlePause, handleSkipNext, handleSkipPrevious } = useAudio();
+  const { setSelectedSong, selectedSong, shouldPlay, handlePlay, handlePause, handleSkipNext, handleSkipPrevious } = useAudio();
 
   const { data: songs } = useQuery({
     queryKey: ['songs'],
-    queryFn: () => {
-      console.log('App - Fetching songs');
-      return fetchSongs();
-    }
+    queryFn: () => fetchSongs()
   });
-
-  console.log('App - Songs data:', {
-    data: songs,
-    dataType: songs ? typeof songs : 'undefined',
-    itemsType: songs?.items ? typeof songs.items : 'undefined',
-    isArray: Array.isArray(songs?.items),
-    itemsLength: songs?.items?.length
-  });
-
-  useEffect(() => {
-    // Check for shared song URL first
-    const sharedSong = getSongFromUrl();
-    if (sharedSong && songs) {
-      console.log('App - Looking for shared song:', {
-        sharedSong,
-        songs
-      });
-      const song = songs.find(s => s.song_id === sharedSong.songId);
-      if (song) {
-        setSelectedSong(song);
-        if (sharedSong.timestamp) {
-          resumeFromTimestamp(sharedSong.timestamp);
-        }
-        return;
-      }
-    }
-
-    // If no shared song, check for resume state
-    const resumeState = getResumeState();
-    if (!resumeState || !songs) return;
-
-    console.log('App - Looking for resume song:', {
-      resumeState,
-      songs
-    });
-    const song = songs.find(s => s.song_id === resumeState.songId);
-    if (song) {
-      setResumeSong({
-        id: song.song_id,
-        timestamp: resumeState.timestamp,
-        title: song.title
-      });
-      setShowResumeDialog(true);
-    } else {
-      clearResumeState();
-    }
-  }, [songs, setSelectedSong, resumeFromTimestamp]);
-
-  const handleResume = () => {
-    if (resumeSong && songs) {
-      const song = songs.find(s => s.song_id === resumeSong.id);
-      if (song) {
-        setSelectedSong(song);
-        resumeFromTimestamp(resumeSong.timestamp);
-        setShowResumeDialog(false);
-      }
-    }
-  };
-
-  const handleSkip = () => {
-    clearResumeState();
-    setShowResumeDialog(false);
-  };
 
   return (
     <ErrorBoundary>
@@ -179,15 +108,6 @@ function AppContent() {
             onPause={handlePause}
             onSkipNext={handleSkipNext}
             onSkipPrevious={handleSkipPrevious}
-          />
-        )}
-        {showResumeDialog && resumeSong && (
-          <ResumeDialog
-            isOpen={showResumeDialog}
-            onClose={handleSkip}
-            onResume={handleResume}
-            timestamp={resumeSong.timestamp}
-            songTitle={resumeSong.title}
           />
         )}
       </div>

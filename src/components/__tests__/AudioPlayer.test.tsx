@@ -82,6 +82,7 @@ const mockProps = {
   shouldPlay: false,
   onPlay: vi.fn(),
   onPause: vi.fn(),
+  initialTimestamp: 0
 } as const;
 
 describe('AudioPlayer', () => {

@@ -47,7 +47,6 @@ The application is built with a modern React stack:
      setShouldPlay: (shouldPlay: boolean) => void;
      handlePlay: () => void;
      handlePause: () => void;
-     resumeFromTimestamp: (timestamp: number) => void;
      handleSkipNext: () => void;
      handleSkipPrevious: () => void;
    }

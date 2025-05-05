@@ -5,8 +5,6 @@ import AppContent from '../App';
 import { AudioProvider } from '../contexts/AudioContext';
 import { TooltipProvider } from '../components/ui/tooltip';
 import { vi } from 'vitest';
-import { getSongFromUrl } from '../utils/urlParams';
-import { getResumeState, clearResumeState } from '../utils/resumeState';
 import '../test/setup';
 
 // Mock the About component
@@ -39,50 +37,22 @@ vi.mock('../components/AudioPlayer', () => ({
   )
 }));
 
-// Mock the ResumeDialog component
-vi.mock('../components/ResumeDialog', () => ({
-  ResumeDialog: ({ isOpen, onClose, onResume, timestamp, songTitle }: any) => 
-    isOpen ? (
-      <div data-testid="resume-dialog">
-        <h2>Resume Playback?</h2>
-        <p>Resume {songTitle} from {timestamp} seconds?</p>
-        <button onClick={onResume}>Resume</button>
-        <button onClick={onClose}>Skip</button>
-      </div>
-    ) : null
-}));
-
 // Mock the fetchSongs function
 vi.mock('../services/songApi', () => ({
-  fetchSongs: vi.fn().mockResolvedValue({
-    items: [
-      {
-        song_id: '1',
-        title: 'Test Song 1',
-        artist: 'Test Artist 1',
-        s3_uri: 's3://test-bucket/test-song-1.mp3'
-      },
-      {
-        song_id: '2',
-        title: 'Test Song 2',
-        artist: 'Test Artist 2',
-        s3_uri: 's3://test-bucket/test-song-2.mp3'
-      }
-    ],
-    total: 2,
-    has_more: false
-  })
-}));
-
-// Mock the getSongFromUrl function
-vi.mock('../utils/urlParams', () => ({
-  getSongFromUrl: vi.fn().mockReturnValue(null)
-}));
-
-// Mock the getResumeState function
-vi.mock('../utils/resumeState', () => ({
-  getResumeState: vi.fn().mockReturnValue(null),
-  clearResumeState: vi.fn()
+  fetchSongs: vi.fn().mockResolvedValue([
+    {
+      song_id: '1',
+      title: 'Test Song 1',
+      artist: 'Test Artist 1',
+      s3_uri: 's3://test-bucket/test-song-1.mp3'
+    },
+    {
+      song_id: '2',
+      title: 'Test Song 2',
+      artist: 'Test Artist 2',
+      s3_uri: 's3://test-bucket/test-song-2.mp3'
+    }
+  ])
 }));
 
 describe('AppContent', () => {
@@ -185,52 +155,5 @@ describe('AppContent', () => {
     await waitFor(() => {
       expect(screen.getByText('Blog Posts')).toBeInTheDocument();
     });
-  });
-
-  /**
-   * TODO: Fix ResumeDialog test
-   * 
-   * Current issues:
-   * 1. The test is failing because the ResumeDialog is not being rendered
-   * 2. The resume state is being set but the dialog is not showing up
-   * 
-   * To fix this:
-   * 1. Ensure the resume state is properly set in the AudioContext
-   * 2. Verify that the ResumeDialog component receives the correct isOpen prop
-   * 3. Check that the song data is available when the resume state is set
-   * 4. Consider testing the ResumeDialog component in isolation first
-   * 
-   * Related files:
-   * - src/contexts/AudioContext.tsx
-   * - src/components/ResumeDialog.tsx
-   * - src/utils/resumeState.ts
-   */
-  it.skip('handles resume state', async () => {
-    // Mock getResumeState to return a resume state
-    vi.mocked(getResumeState).mockReturnValue({
-      songId: '1',
-      timestamp: 30,
-      lastUpdated: Date.now()
-    });
-
-    renderApp();
-    
-    // Check if ResumeDialog is rendered
-    await waitFor(() => {
-      const resumeDialog = screen.getByTestId('resume-dialog');
-      expect(resumeDialog).toBeInTheDocument();
-      expect(screen.getByText('Resume Playback?')).toBeInTheDocument();
-    }, { timeout: 3000 });
-
-    // Click resume button
-    fireEvent.click(screen.getByText('Resume'));
-
-    // Check if AudioPlayer is rendered with correct song
-    await waitFor(() => {
-      const audioPlayer = screen.getByTestId('audio-player');
-      expect(audioPlayer).toBeInTheDocument();
-      expect(screen.getByText('Test Song 1')).toBeInTheDocument();
-      expect(screen.getByText('Test Artist 1')).toBeInTheDocument();
-    }, { timeout: 3000 });
   });
 }); 

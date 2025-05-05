@@ -40,7 +40,6 @@ interface AudioContextType {
   setShouldPlay: (shouldPlay: boolean) => void;
   handlePlay: () => void;
   handlePause: () => void;
-  resumeFromTimestamp: (timestamp: number) => void;
   handleSkipNext: () => void;
   handleSkipPrevious: () => void;
 }
@@ -50,13 +49,11 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined);
 export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [shouldPlay, setShouldPlay] = useState(false);
-  const [resumeTimestamp, setResumeTimestamp] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   console.log('AudioContext - Initial state:', {
     selectedSong,
     shouldPlay,
-    resumeTimestamp,
     currentPage
   });
 
@@ -113,18 +110,6 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       songsLength: songs.length
     });
     setShouldPlay(false);
-  }, [selectedSong, shouldPlay, currentPage, songs.length]);
-
-  const resumeFromTimestamp = useCallback((timestamp: number) => {
-    console.log('AudioContext - resumeFromTimestamp called:', {
-      timestamp,
-      selectedSong,
-      shouldPlay,
-      currentPage,
-      songsLength: songs.length
-    });
-    setResumeTimestamp(timestamp);
-    setShouldPlay(true);
   }, [selectedSong, shouldPlay, currentPage, songs.length]);
 
   const handleSkipNext = useCallback(() => {
@@ -258,7 +243,6 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setShouldPlay,
         handlePlay,
         handlePause,
-        resumeFromTimestamp,
         handleSkipNext,
         handleSkipPrevious
       }}
