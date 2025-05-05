@@ -120,3 +120,18 @@
     @apply bg-secondary border-t border-border p-4;
   }
 }
+
+@keyframes highlight {
+  0% {
+    background-color: hsl(var(--accent));
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: hsl(var(--card));
+    transform: scale(1);
+  }
+}
+
+.highlight-song {
+  animation: highlight 2s ease-out;
+}

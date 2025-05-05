@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from '../services/songApi';
 import { useAudio } from '../contexts/AudioContext';
@@ -6,15 +6,58 @@ import { SearchBar } from './SearchBar';
 import { SongCard } from './SongCard';
 import { Button } from './ui/button';
 import { Loader2 } from 'lucide-react';
+import { useToast } from './ui/use-toast';
+import { Song } from '../types/song';
 
 export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { setSelectedSong, handlePlay } = useAudio();
+  const { toast } = useToast();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['songs'],
     queryFn: fetchSongs
   });
+
+  // Handle hash-based navigation and autoplay
+  useEffect(() => {
+    if (!data || isLoading) return;
+
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return;
+
+    const targetSong = data.find(s => s.song_id === hash);
+    if (targetSong) {
+      // Scroll to the song
+      const el = document.getElementById(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        // Add highlight effect
+        el.classList.add('highlight-song');
+        setTimeout(() => el.classList.remove('highlight-song'), 2000);
+      }
+
+      // Attempt autoplay
+      try {
+        setSelectedSong(targetSong);
+        handlePlay();
+      } catch (error) {
+        console.error('Autoplay failed:', error);
+        toast({
+          title: "Tap to play",
+          description: "Browser blocked autoplay. Click the song to start playing.",
+          duration: 3000,
+        });
+      }
+    } else {
+      toast({
+        title: "Song not found",
+        description: "The shared song is no longer available.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  }, [data, isLoading, setSelectedSong, handlePlay, toast]);
 
   const filteredSongs = useMemo(() => {
     if (!data) return [];
@@ -24,7 +67,7 @@ export const SongList: React.FC = () => {
     );
   }, [data, searchTerm]);
 
-  const handleSongClick = (song: any) => {
+  const handleSongClick = (song: Song) => {
     setSelectedSong(song);
     handlePlay();
   };
@@ -61,6 +104,7 @@ export const SongList: React.FC = () => {
         {filteredSongs.map((song) => (
           <SongCard
             key={song.song_id}
+            songId={song.song_id}
             title={song.title}
             artist={song.artist}
             onClick={() => handleSongClick(song)}

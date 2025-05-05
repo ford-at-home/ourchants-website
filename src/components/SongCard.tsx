@@ -1,16 +1,19 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import { Button } from './ui/button';
+import { ShareIcon } from './ShareIcon';
 
 interface SongCardProps {
+  songId: string;
   title: string;
   artist: string;
   onClick: () => void;
 }
 
-export const SongCard: React.FC<SongCardProps> = ({ title, artist, onClick }) => {
+export const SongCard: React.FC<SongCardProps> = ({ songId, title, artist, onClick }) => {
   return (
     <div
+      id={songId}
       className="group relative bg-card rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer"
       onClick={onClick}
       role="button"
@@ -29,7 +32,10 @@ export const SongCard: React.FC<SongCardProps> = ({ title, artist, onClick }) =>
           </div>
         </div>
         <div className="flex-1">
-          <h3 className="text-foreground font-medium text-base hover:underline">{title}</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-foreground font-medium text-base hover:underline">{title}</h3>
+            <ShareIcon songId={songId} />
+          </div>
           <p className="text-muted-foreground text-sm">{artist}</p>
         </div>
       </div>
