@@ -1,7 +1,7 @@
 ---
 title: "Ayahuasca Mamankuna – Ceremonial Chant"
 slug: "ayahuascamamankuna"
-date: "2024-05-05"
+date: "2025-05-05"
 summary: "Notes on this chant."
 published: true
 ---

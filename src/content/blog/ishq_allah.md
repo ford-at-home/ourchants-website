@@ -1,7 +1,7 @@
 ---
 title: "🌟 Ishq Allah / All I Ask of You"
 slug: "ishqallah"
-date: "2024-05-05"
+date: "2025-05-05"
 summary: "Notes on this chant."
 published: true
 ---

@@ -1,7 +1,7 @@
 ---
 title: "Rebuilding OurChants: From Drupal to Serverless"
 slug: "welcome"
-date: "2024-04-15"
+date: "2025-05-05"
 summary: "A brief technical overview on why this site migrated"
 published: true
 ---

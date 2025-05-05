@@ -1,7 +1,7 @@
 ---
 title: "Chongka Santo – A Chant of María Sabina (Mazatec Velada)"
 slug: "chongkasanto"
-date: "2024-05-05"
+date: "2025-05-05"
 summary: "Notes on this chant."
 published: true
 ---
