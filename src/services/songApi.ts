@@ -25,27 +25,69 @@ export const getPresignedUrl = async (bucket: string, key: string): Promise<{ ur
 
 export const fetchSongs = async (): Promise<Song[]> => {
   try {
+    console.log('songApi - Fetching songs from API');
     const response = await fetch(`${API_ENDPOINT}/songs`, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       }
     });
-    if (!response.ok) {
-      throw new Error("Failed to fetch songs");
-    }
-    const data = await response.json();
-    console.log('API Response:', data);
     
-    // Handle both array and object responses
-    if (Array.isArray(data)) {
-      return data;
-    } else if (data && typeof data === 'object') {
-      return data.items || [];
+    if (!response.ok) {
+      console.error('songApi - API response not OK:', {
+        status: response.status,
+        statusText: response.statusText
+      });
+      throw new Error(`Failed to fetch songs: ${response.statusText}`);
     }
-    return [];
+
+    const data = await response.json();
+    console.log('songApi - Raw API Response:', data);
+    
+    let songs: Song[];
+    
+    // Handle different response formats
+    if (Array.isArray(data)) {
+      console.log('songApi - Response is an array');
+      songs = data;
+    } else if (data && typeof data === 'object') {
+      console.log('songApi - Response is an object');
+      if (Array.isArray(data.items)) {
+        songs = data.items;
+      } else if (Array.isArray(data.songs)) {
+        songs = data.songs;
+      } else {
+        console.error('songApi - Unexpected response format:', data);
+        throw new Error('Invalid API response format');
+      }
+    } else {
+      console.error('songApi - Invalid response type:', typeof data);
+      throw new Error('Invalid API response type');
+    }
+
+    // Validate songs
+    const validSongs = songs.filter(song => {
+      const isValid = song && typeof song === 'object' && 
+        'song_id' in song && 
+        'title' in song && 
+        'artist' in song && 
+        's3_uri' in song;
+      
+      if (!isValid) {
+        console.warn('songApi - Invalid song object:', song);
+      }
+      return isValid;
+    });
+
+    console.log('songApi - Processed songs:', {
+      total: songs.length,
+      valid: validSongs.length,
+      sample: validSongs[0]
+    });
+
+    return validSongs;
   } catch (error) {
-    console.error("Error fetching songs:", error);
+    console.error("songApi - Error fetching songs:", error);
     throw error;
   }
 }; 

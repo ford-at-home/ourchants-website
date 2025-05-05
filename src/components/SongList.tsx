@@ -14,14 +14,14 @@ export const SongList: React.FC = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['songs'],
     queryFn: async () => {
-      console.log('SongList - Fetching songs');
+      console.log('SongList - Using global songs query');
       const songs = await fetchSongs();
-      console.log('SongList - Fetched songs:', { count: songs?.length, songs });
+      console.log('SongList - Songs loaded:', { count: songs?.length });
       return songs;
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnMount: true,
-    retry: 3,
+    retry: 3
   });
 
   const { setSelectedSong, handlePlay } = useAudio();
@@ -33,11 +33,18 @@ export const SongList: React.FC = () => {
       console.log('SongList - Handling URL navigation:', {
         data: data?.length,
         sharedSong: getSongFromUrl(),
-        currentHash
+        currentHash,
+        isLoading
       });
 
-      if (!data) {
-        console.log('SongList - No data available yet');
+      if (isLoading) {
+        console.log('SongList - Still loading songs...');
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error('SongList - No songs available');
+        toast.error('Failed to load songs');
         return;
       }
 
@@ -101,7 +108,7 @@ export const SongList: React.FC = () => {
     };
 
     handleUrlNavigation();
-  }, [data, currentHash, setSelectedSong, handlePlay]);
+  }, [data, currentHash, setSelectedSong, handlePlay, isLoading]);
 
   // Listen for hash changes
   useEffect(() => {

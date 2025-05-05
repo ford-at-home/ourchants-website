@@ -44,16 +44,30 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnMount: true,
+      retry: 3,
+      refetchOnWindowFocus: false
+    }
+  }
+});
 
 function AppContent() {
   const location = useLocation();
   const { setSelectedSong, selectedSong, shouldPlay, handlePlay, handlePause, handleSkipNext, handleSkipPrevious } = useAudio();
   const [initialTimestamp, setInitialTimestamp] = useState<number>(0);
 
-  const { data: songs } = useQuery({
+  const { data: songs, isLoading } = useQuery({
     queryKey: ['songs'],
-    queryFn: () => fetchSongs()
+    queryFn: async () => {
+      console.log('App - Fetching songs');
+      const songs = await fetchSongs();
+      console.log('App - Fetched songs:', { count: songs?.length });
+      return songs;
+    }
   });
 
   // Get initial timestamp from URL on mount
