@@ -4,10 +4,16 @@ import { vi, test, expect, describe, beforeEach, afterEach } from 'vitest';
 import { SongList } from '../SongList';
 import { useAudio } from '../../contexts/AudioContext';
 import { toast } from 'sonner';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // Mock dependencies
 vi.mock('../../contexts/AudioContext', () => ({
   useAudio: vi.fn(),
+}));
+
+vi.mock('react-router-dom', () => ({
+  useLocation: vi.fn(() => ({ pathname: '/' })),
+  useNavigate: vi.fn(() => vi.fn()),
 }));
 
 vi.mock('sonner', () => ({
@@ -53,6 +59,7 @@ describe('SongList', () => {
     isLoading: false,
   };
 
+  const mockNavigate = vi.fn();
   const mockScrollIntoView = vi.fn();
   const mockClassList = {
     add: vi.fn(),
@@ -64,6 +71,10 @@ describe('SongList', () => {
     
     // Mock useAudio default implementation
     (useAudio as jest.Mock).mockReturnValue(mockAudioContext);
+
+    // Mock React Router hooks
+    (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+    (useLocation as jest.Mock).mockReturnValue({ pathname: '/' });
 
     // Reset window.location.hash
     window.location.hash = '';
@@ -82,6 +93,19 @@ describe('SongList', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  describe('navigation', () => {
+    test('automatically navigates to root path if not already there', () => {
+      (useLocation as jest.Mock).mockReturnValueOnce({ pathname: '/other' });
+      render(<SongList />);
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+
+    test('does not navigate if already at root path', () => {
+      render(<SongList />);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
   });
 
   describe('loading states', () => {

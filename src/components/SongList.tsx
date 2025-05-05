@@ -5,12 +5,22 @@ import { SongCard } from './SongCard';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSongFromUrl } from '../utils/urlParams';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isProcessingSharedSong, setIsProcessingSharedSong] = useState(false);
   const { setSelectedSong, handlePlay, songs, isLoading } = useAudio();
   const [currentHash, setCurrentHash] = useState(window.location.hash.replace('#', ''));
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Automatically navigate to root path on mount if not already there
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  }, [location.pathname, navigate]);
 
   // Handle URL parameters and hash changes
   useEffect(() => {
