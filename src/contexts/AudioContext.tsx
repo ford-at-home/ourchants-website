@@ -32,6 +32,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchSongs } from '../services/songApi';
 import { Song } from '../types/song';
 import { isValidS3Uri } from '../utils/audioHelpers';
+import { getSongFromUrl } from '../utils/urlParams';
 
 interface AudioContextType {
   selectedSong: Song | null;
@@ -51,187 +52,129 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [shouldPlay, setShouldPlay] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  console.log('AudioContext - Initial state:', {
-    selectedSong,
-    shouldPlay,
-    currentPage
-  });
-
-  const { data, isLoading } = useQuery<Song[]>({
-    queryKey: ['songs', currentPage],
-    queryFn: () => {
-      console.log('AudioContext - Fetching songs with params:', {
-        currentPage,
-        limit: 20,
-        offset: (currentPage - 1) * 20
-      });
-      return fetchSongs();
+  const { data: songs, isLoading } = useQuery<Song[]>({
+    queryKey: ['songs'],
+    queryFn: async () => {
+      console.log('AudioContext - Fetching songs');
+      const songs = await fetchSongs();
+      console.log('AudioContext - Fetched songs:', { count: songs?.length, songs });
+      return songs;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Add debug logging for data changes
+  // Initialize with shared song if present
   useEffect(() => {
-    console.log('AudioContext - Data state changed:', {
-      data,
-      isLoading,
-      dataType: data ? typeof data : 'undefined',
-      itemsType: data ? typeof data : 'undefined',
-      isArray: Array.isArray(data),
-      itemsLength: data?.length,
-      selectedSong,
-      rawData: data
-    });
-  }, [data, isLoading, selectedSong]);
+    const initializeSharedSong = async () => {
+      console.log('AudioContext - Initializing with shared song');
+      if (!songs || isLoading) {
+        console.log('AudioContext - Songs not yet available');
+        return;
+      }
 
-  // Ensure songs is always an array
-  const songs = data || [];
-  console.log('AudioContext - Processed songs array:', {
-    songsLength: songs.length,
-    isArray: Array.isArray(songs),
-    firstSong: songs[0]
-  });
+      const sharedSong = getSongFromUrl();
+      if (sharedSong && !selectedSong) {
+        console.log('AudioContext - Found shared song in URL:', sharedSong);
+        const targetSong = songs.find(s => s.song_id === sharedSong.songId);
+        if (targetSong) {
+          console.log('AudioContext - Setting shared song:', targetSong);
+          setSelectedSong(targetSong);
+          setShouldPlay(true);
+        } else {
+          console.log('AudioContext - Shared song not found in data');
+        }
+      }
+    };
+
+    initializeSharedSong();
+  }, [songs, isLoading]);
+
+  // Add debug logging for state changes
+  useEffect(() => {
+    console.log('AudioContext - State changed:', {
+      selectedSong,
+      shouldPlay,
+      currentPage,
+      songsLoaded: songs?.length,
+      isLoading
+    });
+  }, [selectedSong, shouldPlay, currentPage, songs, isLoading]);
 
   const handlePlay = useCallback(() => {
     console.log('AudioContext - handlePlay called', {
       selectedSong,
       shouldPlay,
       currentPage,
-      songsLength: songs.length
+      songsLength: songs?.length
     });
     setShouldPlay(true);
-  }, [selectedSong, shouldPlay, currentPage, songs.length]);
+  }, [selectedSong, shouldPlay, currentPage, songs?.length]);
 
   const handlePause = useCallback(() => {
     console.log('AudioContext - handlePause called', {
       selectedSong,
       shouldPlay,
       currentPage,
-      songsLength: songs.length
+      songsLength: songs?.length
     });
     setShouldPlay(false);
-  }, [selectedSong, shouldPlay, currentPage, songs.length]);
+  }, [selectedSong, shouldPlay, currentPage, songs?.length]);
 
   const handleSkipNext = useCallback(() => {
+    if (!songs || !selectedSong) return;
+    
     console.log('AudioContext - handleSkipNext called:', {
-      isLoading,
       selectedSong,
-      songsLength: songs.length,
-      songs: songs,
-      shouldPlay,
-      currentPage
+      songsLength: songs.length
     });
-
-    if (isLoading || !selectedSong || songs.length === 0) {
-      console.log('AudioContext - Skipping next - invalid state');
-      return;
-    }
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    console.log('AudioContext - Current index:', currentIndex);
+    if (currentIndex === -1) return;
     
-    if (currentIndex === -1) {
-      console.log('AudioContext - Current song not found in list');
-      return;
-    }
+    const nextIndex = (currentIndex + 1) % songs.length;
+    const nextSong = songs[nextIndex];
     
-    // If we're not at the end of the current page, play the next song
-    if (currentIndex < songs.length - 1) {
-      const nextIndex = currentIndex + 1;
-      const nextSong = songs[nextIndex];
-      console.log('AudioContext - Next song:', nextSong);
-      setSelectedSong(nextSong);
-      setShouldPlay(true);
-    }
-  }, [selectedSong, songs, isLoading, shouldPlay, currentPage]);
+    console.log('AudioContext - Skipping to next song:', nextSong);
+    setSelectedSong(nextSong);
+    setShouldPlay(true);
+  }, [selectedSong, songs]);
 
   const handleSkipPrevious = useCallback(() => {
+    if (!songs || !selectedSong) return;
+    
     console.log('AudioContext - handleSkipPrevious called:', {
-      isLoading,
       selectedSong,
-      songsLength: songs.length,
-      currentPage,
-      shouldPlay
+      songsLength: songs.length
     });
-
-    if (isLoading || !selectedSong || songs.length === 0) {
-      console.log('AudioContext - Skipping previous - invalid state');
-      return;
-    }
     
     const currentIndex = songs.findIndex(song => song.song_id === selectedSong.song_id);
-    console.log('AudioContext - Current index:', currentIndex);
-    
-    if (currentIndex === -1) {
-      console.log('AudioContext - Current song not found in list');
-      return;
-    }
-    
-    if (currentIndex === 0 && currentPage > 1) {
-      console.log('AudioContext - Loading previous page');
-      setCurrentPage(prev => prev - 1);
-      return;
-    }
+    if (currentIndex === -1) return;
     
     const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
     const prevSong = songs[prevIndex];
-    console.log('AudioContext - Previous song:', prevSong);
     
+    console.log('AudioContext - Skipping to previous song:', prevSong);
     setSelectedSong(prevSong);
     setShouldPlay(true);
-  }, [selectedSong, songs, isLoading, currentPage, shouldPlay]);
+  }, [selectedSong, songs]);
 
   const handleSetSelectedSong = useCallback((song: Song | null) => {
     console.log('AudioContext - Setting selected song:', {
       song,
       s3Uri: song?.s3_uri,
       filename: song?.filename,
-      filepath: song?.filepath,
-      rawSong: JSON.stringify(song, null, 2)
+      filepath: song?.filepath
     });
 
     if (song && !isValidS3Uri(song.s3_uri)) {
-      console.error('Invalid S3 URI for song:', {
+      console.error('AudioContext - Invalid S3 URI for song:', {
         song,
-        s3Uri: song.s3_uri,
-        isValid: isValidS3Uri(song.s3_uri),
-        filename: song.filename,
-        filepath: song.filepath
+        s3Uri: song.s3_uri
       });
       return;
     }
 
-    // Ensure the song data is properly structured
-    if (song) {
-      const filename = song.filename || song.s3_uri?.split('/').pop() || '';
-      if (!filename) {
-        console.error('Invalid song data - missing filename:', {
-          song,
-          s3Uri: song.s3_uri,
-          filename: song.filename
-        });
-        return;
-      }
-
-      const processedSong = {
-        ...song,
-        s3_uri: song.s3_uri || `s3://ourchants-songs/${filename}`,
-        filename: filename,
-        filepath: song.filepath || song.s3_uri || ''
-      };
-
-      console.log('AudioContext - Processed song data:', {
-        original: song,
-        processed: processedSong,
-        s3Uri: processedSong.s3_uri,
-        filename: processedSong.filename,
-        filepath: processedSong.filepath
-      });
-
-      setSelectedSong(processedSong);
-    } else {
-      setSelectedSong(null);
-    }
+    setSelectedSong(song);
   }, []);
 
   return (

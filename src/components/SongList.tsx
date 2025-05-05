@@ -13,7 +13,12 @@ export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data, isLoading, error } = useQuery({
     queryKey: ['songs'],
-    queryFn: fetchSongs,
+    queryFn: async () => {
+      console.log('SongList - Fetching songs');
+      const songs = await fetchSongs();
+      console.log('SongList - Fetched songs:', { count: songs?.length, songs });
+      return songs;
+    },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnMount: true,
     retry: 3,
@@ -25,13 +30,26 @@ export const SongList: React.FC = () => {
   // Handle URL parameters and hash changes
   useEffect(() => {
     const handleUrlNavigation = async () => {
-      if (!data) return;
+      console.log('SongList - Handling URL navigation:', {
+        data: data?.length,
+        sharedSong: getSongFromUrl(),
+        currentHash
+      });
+
+      if (!data) {
+        console.log('SongList - No data available yet');
+        return;
+      }
 
       // Check for shared song in URL parameters
       const sharedSong = getSongFromUrl();
       if (sharedSong) {
+        console.log('SongList - Found shared song in URL:', sharedSong);
         const targetSong = data.find(s => s.song_id === sharedSong.songId);
+        console.log('SongList - Target song found:', targetSong);
+        
         if (targetSong) {
+          console.log('SongList - Setting and playing shared song');
           setSelectedSong(targetSong);
           try {
             await handlePlay();
@@ -44,16 +62,22 @@ export const SongList: React.FC = () => {
               }, 2000);
             }
           } catch (error) {
+            console.error('SongList - Error playing shared song:', error);
             toast.error('Click to play the song');
           }
           return;
+        } else {
+          console.log('SongList - Shared song not found in data');
+          toast.error('Shared song not found');
         }
       }
 
       // If no shared song or not found, check for hash navigation
       if (currentHash) {
+        console.log('SongList - Checking hash navigation:', currentHash);
         const targetSong = data.find(s => s.song_id === currentHash);
         if (targetSong) {
+          console.log('SongList - Setting and playing hash song');
           setSelectedSong(targetSong);
           try {
             await handlePlay();
@@ -66,9 +90,11 @@ export const SongList: React.FC = () => {
               }, 2000);
             }
           } catch (error) {
+            console.error('SongList - Error playing hash song:', error);
             toast.error('Click to play the song');
           }
         } else {
+          console.log('SongList - Hash song not found');
           toast.error('Song not found');
         }
       }
@@ -88,15 +114,18 @@ export const SongList: React.FC = () => {
   }, []);
 
   const handleSongClick = async (song: any) => {
+    console.log('SongList - Song clicked:', song);
     setSelectedSong(song);
     try {
       await handlePlay();
     } catch (error) {
+      console.error('SongList - Error playing clicked song:', error);
       toast.error('Failed to play song');
     }
   };
 
   if (isLoading) {
+    console.log('SongList - Loading state');
     return (
       <div className="flex items-center justify-center min-h-[200px]">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -106,6 +135,7 @@ export const SongList: React.FC = () => {
   }
 
   if (error) {
+    console.error('SongList - Error state:', error);
     return (
       <div className="flex items-center justify-center min-h-[200px] text-destructive">
         Error loading songs
@@ -116,6 +146,12 @@ export const SongList: React.FC = () => {
   const filteredSongs = data?.filter(song => 
     song.artist?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  console.log('SongList - Rendering with songs:', {
+    total: data?.length,
+    filtered: filteredSongs.length,
+    searchTerm
+  });
 
   return (
     <div className="space-y-4">
