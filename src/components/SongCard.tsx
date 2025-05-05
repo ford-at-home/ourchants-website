@@ -38,7 +38,7 @@ export const SongCard: React.FC<SongCardProps> = ({ title, artist, songId, onCli
               <h3 className="text-foreground font-medium text-base hover:underline">{title}</h3>
               <p className="text-muted-foreground text-sm">{artist}</p>
             </div>
-            <ShareButton songId={songId} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ShareButton songId={songId} className="transition-colors" />
           </div>
         </div>
       </div>
