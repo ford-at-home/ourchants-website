@@ -1,3 +1,10 @@
+---
+title: "🌕 Isis / We All Come From the Goddess"
+slug: "isis"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🌕 Isis / We All Come From the Goddess
 
 **Tradition**: Pagan / Wiccan / Goddess Chants  

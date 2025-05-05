@@ -1,4 +1,10 @@
-
+---
+title: "Ayahuasca Mamankuna – Ceremonial Chant"
+slug: "ayahuascamamankuna"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # Ayahuasca Mamankuna – Ceremonial Chant
 
 **“Ayahuasca Mamankuna”** is a ceremonial chant invoking the spirit of the mother vine (*mamankuna*), blending rhythmic syllables with healing invocations in Quechua and Spanish-influenced phonetics. The chant is repetitive, trance-inducing, and flows with cycles of melodic phrases. The following is a polished and structured version of the original transcription for clarity and ceremonial performance.

@@ -1,4 +1,10 @@
-
+---
+title: "🌎 Madre Tierra, Madre Vida / Mama Earth, Mama Life"
+slug: "madretierra"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🌎 Madre Tierra, Madre Vida / Mama Earth, Mama Life
 
 **A Spanish-language icaro or ceremonial chant**, composed by **Alonso del Rio** and sung here by Nicola (2009 recording). This song blends earth-honoring devotion with melodic, healing repetition. It is commonly sung in sacred ceremonies and spiritual song circles. It honors **Pachamama (Mother Earth)** and the healing energy of the sun, emphasizing the **Tree of Life** as a central axis of spiritual elevation.

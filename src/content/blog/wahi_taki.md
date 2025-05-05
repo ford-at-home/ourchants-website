@@ -1,4 +1,10 @@
-
+---
+title: 🌿 Wahi Taki (Remove Illness & Give to God)
+slug: "wahitaki"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🌿 Wahi Taki (Remove Illness & Give to God)
 
 **A traditional Amazonian icaro** attributed to renowned Peruvian curandero **Don Agustín Rivas Vásquez**, and performed by **Diana de la Selva**.

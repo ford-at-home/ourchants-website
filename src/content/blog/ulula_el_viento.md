@@ -1,3 +1,10 @@
+---
+title: 🌬️ Ulula El Viento
+slug: "ululaelviento"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🌬️ Ulula El Viento
 
 **A contemporary ceremonial song** performed by **Freedom Café**, featured on their album *Cantos De Medicina* (2016).

@@ -1,4 +1,10 @@
-
+---
+title: "Chongka Santo – A Chant of María Sabina (Mazatec Velada)"
+slug: "chongkasanto"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # Chongka Santo – A Chant of María Sabina (Mazatec Velada)
 
 **“Chongka Santo”** is a contemporary phonetic transcription of a sacred chant performed by **María Sabina**, the renowned Mazatec *curandera* (healer) from Huautla de Jiménez, Oaxaca, Mexico. This chant originates from Sabina's **mushroom veladas** — nighttime healing ceremonies that invoked spiritual guidance through the use of psilocybin mushrooms (*niños santos*). The phrases in this chant, including _“Chongka Kilianya Do”_, _“Chongka Kui Shrinya Do”_, and the repeated _“Chonga Santo, na-to”_, are authentic renderings of her ceremonial language.
