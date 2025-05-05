@@ -7,6 +7,7 @@ import { SongCard } from './SongCard';
 import { Button } from './ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getSongFromUrl } from '../utils/urlParams';
 
 export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,6 +22,61 @@ export const SongList: React.FC = () => {
   const { setSelectedSong, handlePlay } = useAudio();
   const [currentHash, setCurrentHash] = useState(window.location.hash.replace('#', ''));
 
+  // Handle URL parameters and hash changes
+  useEffect(() => {
+    const handleUrlNavigation = async () => {
+      if (!data) return;
+
+      // Check for shared song in URL parameters
+      const sharedSong = getSongFromUrl();
+      if (sharedSong) {
+        const targetSong = data.find(s => s.song_id === sharedSong.songId);
+        if (targetSong) {
+          setSelectedSong(targetSong);
+          try {
+            await handlePlay();
+            const el = document.getElementById(sharedSong.songId);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('highlight-song');
+              setTimeout(() => {
+                el.classList.remove('highlight-song');
+              }, 2000);
+            }
+          } catch (error) {
+            toast.error('Click to play the song');
+          }
+          return;
+        }
+      }
+
+      // If no shared song or not found, check for hash navigation
+      if (currentHash) {
+        const targetSong = data.find(s => s.song_id === currentHash);
+        if (targetSong) {
+          setSelectedSong(targetSong);
+          try {
+            await handlePlay();
+            const el = document.getElementById(currentHash);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.classList.add('highlight-song');
+              setTimeout(() => {
+                el.classList.remove('highlight-song');
+              }, 2000);
+            }
+          } catch (error) {
+            toast.error('Click to play the song');
+          }
+        } else {
+          toast.error('Song not found');
+        }
+      }
+    };
+
+    handleUrlNavigation();
+  }, [data, currentHash, setSelectedSong, handlePlay]);
+
   // Listen for hash changes
   useEffect(() => {
     const handleHashChange = () => {
@@ -30,38 +86,6 @@ export const SongList: React.FC = () => {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
-
-  // Handle hash-based navigation
-  useEffect(() => {
-    const handleHashNavigation = async () => {
-      if (!currentHash || !data) return;
-
-      const targetSong = data.find(s => s.song_id === currentHash);
-      if (!targetSong) {
-        toast.error('Song not found');
-        return;
-      }
-
-      setSelectedSong(targetSong);
-      
-      try {
-        await handlePlay();
-        const el = document.getElementById(currentHash);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          el.classList.add('highlight-song');
-          const timer = setTimeout(() => {
-            el.classList.remove('highlight-song');
-          }, 2000);
-          return () => clearTimeout(timer);
-        }
-      } catch (error) {
-        toast.error('Click to play the song');
-      }
-    };
-
-    handleHashNavigation();
-  }, [currentHash, data, setSelectedSong, handlePlay]);
 
   const handleSongClick = async (song: any) => {
     setSelectedSong(song);

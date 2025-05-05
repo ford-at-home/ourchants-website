@@ -94,12 +94,13 @@ export function AudioPlayer({
     title,
     artist,
     songId,
-    shouldPlay
+    shouldPlay,
+    initialTimestamp
   });
 
   // All state hooks at the top
   const [playerState, setPlayerState] = useState<PlayerState>('idle');
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(initialTimestamp);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);

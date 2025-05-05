@@ -49,11 +49,24 @@ const queryClient = new QueryClient();
 function AppContent() {
   const location = useLocation();
   const { setSelectedSong, selectedSong, shouldPlay, handlePlay, handlePause, handleSkipNext, handleSkipPrevious } = useAudio();
+  const [initialTimestamp, setInitialTimestamp] = useState<number>(0);
 
   const { data: songs } = useQuery({
     queryKey: ['songs'],
     queryFn: () => fetchSongs()
   });
+
+  // Get initial timestamp from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const timestamp = params.get('t');
+    if (timestamp) {
+      const parsedTimestamp = parseFloat(timestamp);
+      if (!isNaN(parsedTimestamp) && parsedTimestamp >= 0) {
+        setInitialTimestamp(parsedTimestamp);
+      }
+    }
+  }, [location.search]);
 
   return (
     <ErrorBoundary>
@@ -108,6 +121,7 @@ function AppContent() {
             onPause={handlePause}
             onSkipNext={handleSkipNext}
             onSkipPrevious={handleSkipPrevious}
+            initialTimestamp={initialTimestamp}
           />
         )}
       </div>
