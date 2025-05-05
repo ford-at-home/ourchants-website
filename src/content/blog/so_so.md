@@ -1,3 +1,10 @@
+---
+title: "🍄 Soso Soso"
+slug: "sosososo"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🍄 Soso Soso
 
 **Artist**: María Sabina  

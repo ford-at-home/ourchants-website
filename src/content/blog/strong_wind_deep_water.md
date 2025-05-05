@@ -1,3 +1,10 @@
+---
+title: "Strong Wind, Deep Water, Tall Trees, Warm Fire"
+slug: "strongwind"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # Strong Wind, Deep Water, Tall Trees, Warm Fire
 
 This is a **contemporary ceremonial song** often used in modern spiritual and song circle gatherings, particularly in North America and Europe.

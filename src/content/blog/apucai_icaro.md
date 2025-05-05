@@ -1,4 +1,10 @@
-
+---
+title: "Apucai Anti Runa – Invocation Icaro (Quechua)"
+slug: "apucai"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # Apucai Anti Runa – Invocation Icaro (Quechua)
 
 **“Apucai Anti Runa”** is a traditional *Quechua-language icaro* used in ayahuasca ceremonies to invoke protective ancestral energies. It calls in both masculine and feminine spirits, grounding the space in love and strength. Though not originally from the Shipibo-Conibo tradition, it is widely sung in Amazonian medicine ceremonies across cultures.

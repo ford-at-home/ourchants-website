@@ -1,3 +1,10 @@
+---
+title: "🌟 Ishq Allah / All I Ask of You"
+slug: "ishqallah"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🌟 Ishq Allah / All I Ask of You
 
 **A sacred chant blending Christian and Sufi traditions**, combining the hymn *All I Ask of You* by Gregory Norbet with the Sufi invocation *Ishq Allah Ma'bud Lillah*.

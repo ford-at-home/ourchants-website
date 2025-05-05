@@ -1,3 +1,10 @@
+---
+title: "🌿 Doctor Paikah"
+slug: "doctorpaikah"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🌿 Doctor Paikah
 
 **Artist**: María Cristina Mendoza Widal  

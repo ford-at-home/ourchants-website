@@ -1,3 +1,10 @@
+---
+title: "🙌 Alleluia We Praise"
+slug: "alleluia"
+date: "2024-05-05"
+summary: "Notes on this chant."
+published: true
+---
 # 🙌 Alleluia We Praise
 
 **Artist**: Michael Stillwater  
