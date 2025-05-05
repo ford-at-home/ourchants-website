@@ -1,7 +1,7 @@
 ---
 title: "OurChants v2 - Welcome + Survey"
 slug: "welcome"
-date: "2024-04-15"
+date: "2025-04-15"
 summary: "An introduction to OurChants and our mission to preserve sacred chants."
 published: true
 ---
