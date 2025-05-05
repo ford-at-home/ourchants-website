@@ -43,6 +43,8 @@ interface AudioContextType {
   handlePause: () => void;
   handleSkipNext: () => void;
   handleSkipPrevious: () => void;
+  songs: Song[] | undefined;
+  isLoading: boolean;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -198,7 +200,9 @@ export const AudioProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         handlePlay,
         handlePause,
         handleSkipNext,
-        handleSkipPrevious
+        handleSkipPrevious,
+        songs,
+        isLoading
       }}
     >
       {children}

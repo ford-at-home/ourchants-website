@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchSongs } from '../services/songApi';
 import { useAudio } from '../contexts/AudioContext';
 import { SearchBar } from './SearchBar';
 import { SongCard } from './SongCard';
@@ -12,30 +10,17 @@ import { getSongFromUrl } from '../utils/urlParams';
 export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isProcessingSharedSong, setIsProcessingSharedSong] = useState(false);
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['songs'],
-    queryFn: async () => {
-      console.log('SongList - Using global songs query');
-      const songs = await fetchSongs();
-      console.log('SongList - Songs loaded:', { count: songs?.length });
-      return songs;
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: true,
-    retry: 3
-  });
-
-  const { setSelectedSong, handlePlay } = useAudio();
+  const { setSelectedSong, handlePlay, songs, isLoading } = useAudio();
   const [currentHash, setCurrentHash] = useState(window.location.hash.replace('#', ''));
 
   // Handle URL parameters and hash changes
   useEffect(() => {
     const handleUrlNavigation = async () => {
-      if (isLoading || !data || data.length === 0) return;
+      if (isLoading || !songs || songs.length === 0) return;
 
       setIsProcessingSharedSong(true);
       console.log('SongList - Handling URL navigation:', {
-        data: data?.length,
+        data: songs?.length,
         sharedSong: getSongFromUrl(),
         currentHash,
         isLoading
@@ -46,7 +31,7 @@ export const SongList: React.FC = () => {
         const sharedSong = getSongFromUrl();
         if (sharedSong) {
           console.log('SongList - Found shared song in URL:', sharedSong);
-          const targetSong = data.find(s => s.song_id === sharedSong.songId);
+          const targetSong = songs.find(s => s.song_id === sharedSong.songId);
           console.log('SongList - Target song found:', targetSong);
           
           if (targetSong) {
@@ -75,7 +60,7 @@ export const SongList: React.FC = () => {
         // If no shared song or not found, check for hash navigation
         else if (currentHash) {
           console.log('SongList - Checking hash navigation:', currentHash);
-          const targetSong = data.find(s => s.song_id === currentHash);
+          const targetSong = songs.find(s => s.song_id === currentHash);
           if (targetSong) {
             console.log('SongList - Setting and playing hash song');
             setSelectedSong(targetSong);
@@ -104,7 +89,7 @@ export const SongList: React.FC = () => {
     };
 
     handleUrlNavigation();
-  }, [data, currentHash, setSelectedSong, handlePlay, isLoading]);
+  }, [songs, currentHash, setSelectedSong, handlePlay, isLoading]);
 
   // Listen for hash changes
   useEffect(() => {
@@ -128,12 +113,12 @@ export const SongList: React.FC = () => {
   };
 
   // Prepare songs list regardless of shared song processing
-  const filteredSongs = data?.filter(song => 
+  const filteredSongs = songs?.filter(song => 
     song.artist?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   console.log('SongList - Rendering with songs:', {
-    total: data?.length,
+    total: songs?.length,
     filtered: filteredSongs.length,
     searchTerm,
     isProcessingSharedSong
@@ -151,10 +136,6 @@ export const SongList: React.FC = () => {
         <div className="flex items-center justify-center min-h-[200px]">
           <Loader2 className="w-8 h-8 animate-spin" />
           <span className="ml-2">Loading songs...</span>
-        </div>
-      ) : error ? (
-        <div className="flex items-center justify-center min-h-[200px] text-destructive">
-          Error loading songs
         </div>
       ) : (
         <div className="grid gap-4">
