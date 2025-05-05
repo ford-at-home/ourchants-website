@@ -11,6 +11,7 @@ import { getSongFromUrl } from '../utils/urlParams';
 
 export const SongList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isProcessingSharedSong, setIsProcessingSharedSong] = useState(false);
   const { data, isLoading, error } = useQuery({
     queryKey: ['songs'],
     queryFn: async () => {
@@ -30,6 +31,9 @@ export const SongList: React.FC = () => {
   // Handle URL parameters and hash changes
   useEffect(() => {
     const handleUrlNavigation = async () => {
+      if (isLoading || !data || data.length === 0) return;
+
+      setIsProcessingSharedSong(true);
       console.log('SongList - Handling URL navigation:', {
         data: data?.length,
         sharedSong: getSongFromUrl(),
@@ -37,73 +41,65 @@ export const SongList: React.FC = () => {
         isLoading
       });
 
-      if (isLoading) {
-        console.log('SongList - Still loading songs...');
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        console.error('SongList - No songs available');
-        toast.error('Failed to load songs');
-        return;
-      }
-
-      // Check for shared song in URL parameters
-      const sharedSong = getSongFromUrl();
-      if (sharedSong) {
-        console.log('SongList - Found shared song in URL:', sharedSong);
-        const targetSong = data.find(s => s.song_id === sharedSong.songId);
-        console.log('SongList - Target song found:', targetSong);
-        
-        if (targetSong) {
-          console.log('SongList - Setting and playing shared song');
-          setSelectedSong(targetSong);
-          try {
-            await handlePlay();
-            const el = document.getElementById(sharedSong.songId);
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              el.classList.add('highlight-song');
-              setTimeout(() => {
-                el.classList.remove('highlight-song');
-              }, 2000);
+      try {
+        // Check for shared song in URL parameters
+        const sharedSong = getSongFromUrl();
+        if (sharedSong) {
+          console.log('SongList - Found shared song in URL:', sharedSong);
+          const targetSong = data.find(s => s.song_id === sharedSong.songId);
+          console.log('SongList - Target song found:', targetSong);
+          
+          if (targetSong) {
+            console.log('SongList - Setting and playing shared song');
+            setSelectedSong(targetSong);
+            try {
+              await handlePlay();
+              const el = document.getElementById(sharedSong.songId);
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('highlight-song');
+                setTimeout(() => {
+                  el.classList.remove('highlight-song');
+                }, 2000);
+              }
+            } catch (error) {
+              console.error('SongList - Error playing shared song:', error);
+              toast.error('Click to play the song');
             }
-          } catch (error) {
-            console.error('SongList - Error playing shared song:', error);
-            toast.error('Click to play the song');
+          } else {
+            console.log('SongList - Shared song not found in data');
+            toast.error('Shared song not found');
           }
-          return;
-        } else {
-          console.log('SongList - Shared song not found in data');
-          toast.error('Shared song not found');
         }
-      }
 
-      // If no shared song or not found, check for hash navigation
-      if (currentHash) {
-        console.log('SongList - Checking hash navigation:', currentHash);
-        const targetSong = data.find(s => s.song_id === currentHash);
-        if (targetSong) {
-          console.log('SongList - Setting and playing hash song');
-          setSelectedSong(targetSong);
-          try {
-            await handlePlay();
-            const el = document.getElementById(currentHash);
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              el.classList.add('highlight-song');
-              setTimeout(() => {
-                el.classList.remove('highlight-song');
-              }, 2000);
+        // If no shared song or not found, check for hash navigation
+        else if (currentHash) {
+          console.log('SongList - Checking hash navigation:', currentHash);
+          const targetSong = data.find(s => s.song_id === currentHash);
+          if (targetSong) {
+            console.log('SongList - Setting and playing hash song');
+            setSelectedSong(targetSong);
+            try {
+              await handlePlay();
+              const el = document.getElementById(currentHash);
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('highlight-song');
+                setTimeout(() => {
+                  el.classList.remove('highlight-song');
+                }, 2000);
+              }
+            } catch (error) {
+              console.error('SongList - Error playing hash song:', error);
+              toast.error('Click to play the song');
             }
-          } catch (error) {
-            console.error('SongList - Error playing hash song:', error);
-            toast.error('Click to play the song');
+          } else {
+            console.log('SongList - Hash song not found');
+            toast.error('Song not found');
           }
-        } else {
-          console.log('SongList - Hash song not found');
-          toast.error('Song not found');
         }
+      } finally {
+        setIsProcessingSharedSong(false);
       }
     };
 
@@ -131,25 +127,7 @@ export const SongList: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    console.log('SongList - Loading state');
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Loading songs...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    console.error('SongList - Error state:', error);
-    return (
-      <div className="flex items-center justify-center min-h-[200px] text-destructive">
-        Error loading songs
-      </div>
-    );
-  }
-
+  // Prepare songs list regardless of shared song processing
   const filteredSongs = data?.filter(song => 
     song.artist?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
@@ -157,9 +135,11 @@ export const SongList: React.FC = () => {
   console.log('SongList - Rendering with songs:', {
     total: data?.length,
     filtered: filteredSongs.length,
-    searchTerm
+    searchTerm,
+    isProcessingSharedSong
   });
 
+  // Always render the song list, even while processing shared song
   return (
     <div className="space-y-4">
       <SearchBar
@@ -167,20 +147,31 @@ export const SongList: React.FC = () => {
         onChange={setSearchTerm}
         placeholder="Search by artist..."
       />
-      <div className="grid gap-4">
-        {filteredSongs.map((song: any) => (
-          <SongCard
-            key={song.song_id}
-            songId={song.song_id}
-            title={song.title}
-            artist={song.artist}
-            onClick={() => handleSongClick(song)}
-          />
-        ))}
-      </div>
-      {filteredSongs.length === 0 && (
-        <div className="text-center text-muted-foreground">
-          No songs found matching your search.
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[200px]">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <span className="ml-2">Loading songs...</span>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center min-h-[200px] text-destructive">
+          Error loading songs
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredSongs.map((song: any) => (
+            <SongCard
+              key={song.song_id}
+              songId={song.song_id}
+              title={song.title}
+              artist={song.artist}
+              onClick={() => handleSongClick(song)}
+            />
+          ))}
+          {filteredSongs.length === 0 && (
+            <div className="text-center text-muted-foreground">
+              No songs found matching your search.
+            </div>
+          )}
         </div>
       )}
     </div>
