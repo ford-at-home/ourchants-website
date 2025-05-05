@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useAudio } from '../contexts/AudioContext';
 import { SearchBar } from './SearchBar';
 import { SongCard } from './SongCard';
-import { Button } from './ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSongFromUrl } from '../utils/urlParams';
@@ -53,7 +52,7 @@ export const SongList: React.FC = () => {
             }
           } else {
             console.log('SongList - Shared song not found in data');
-            toast.error('Shared song not found');
+            toast.error('Song not found');
           }
         }
 
@@ -139,16 +138,17 @@ export const SongList: React.FC = () => {
         </div>
       ) : (
         <div className="grid gap-4">
-          {filteredSongs.map((song: any) => (
-            <SongCard
-              key={song.song_id}
-              songId={song.song_id}
-              title={song.title}
-              artist={song.artist}
-              onClick={() => handleSongClick(song)}
-            />
-          ))}
-          {filteredSongs.length === 0 && (
+          {filteredSongs.length > 0 ? (
+            filteredSongs.map((song: any) => (
+              <SongCard
+                key={song.song_id}
+                songId={song.song_id}
+                title={song.title}
+                artist={song.artist}
+                onClick={() => handleSongClick(song)}
+              />
+            ))
+          ) : (
             <div className="text-center text-muted-foreground">
               No songs found matching your search.
             </div>

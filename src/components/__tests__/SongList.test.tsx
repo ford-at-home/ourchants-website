@@ -2,15 +2,10 @@ import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { vi, test, expect, describe, beforeEach, afterEach } from 'vitest';
 import { SongList } from '../SongList';
-import { useQuery } from '@tanstack/react-query';
 import { useAudio } from '../../contexts/AudioContext';
 import { toast } from 'sonner';
 
 // Mock dependencies
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(),
-}));
-
 vi.mock('../../contexts/AudioContext', () => ({
   useAudio: vi.fn(),
 }));
@@ -54,6 +49,8 @@ describe('SongList', () => {
   const mockAudioContext = {
     setSelectedSong: vi.fn(),
     handlePlay: vi.fn(),
+    songs: mockSongs,
+    isLoading: false,
   };
 
   const mockScrollIntoView = vi.fn();
@@ -65,13 +62,6 @@ describe('SongList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Mock useQuery default implementation
-    (useQuery as jest.Mock).mockReturnValue({
-      data: mockSongs,
-      isLoading: false,
-      error: null,
-    });
-
     // Mock useAudio default implementation
     (useAudio as jest.Mock).mockReturnValue(mockAudioContext);
 
@@ -94,39 +84,26 @@ describe('SongList', () => {
     vi.useRealTimers();
   });
 
-  describe('query configuration', () => {
-    test('initializes with correct query options', () => {
-      render(<SongList />);
-      
-      expect(useQuery).toHaveBeenCalledWith({
-        queryKey: ['songs'],
-        queryFn: expect.any(Function),
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        refetchOnMount: true,
-        retry: 3,
-      });
-    });
-
+  describe('loading states', () => {
     test('handles loading state correctly', () => {
-      (useQuery as jest.Mock).mockReturnValueOnce({
+      (useAudio as jest.Mock).mockReturnValueOnce({
+        ...mockAudioContext,
         isLoading: true,
-        data: null,
-        error: null,
+        songs: undefined,
       });
 
       render(<SongList />);
       expect(screen.getByText('Loading songs...')).toBeInTheDocument();
     });
 
-    test('handles error state correctly', () => {
-      (useQuery as jest.Mock).mockReturnValueOnce({
-        isLoading: false,
-        data: null,
-        error: new Error('Failed to fetch'),
+    test('handles empty state correctly', () => {
+      (useAudio as jest.Mock).mockReturnValueOnce({
+        ...mockAudioContext,
+        songs: [],
       });
 
       render(<SongList />);
-      expect(screen.getByText('Error loading songs')).toBeInTheDocument();
+      expect(screen.getByText('No songs found matching your search.')).toBeInTheDocument();
     });
   });
 
