@@ -1,0 +1,8 @@
+{
+  "title": "Rebuilding OurChants: From Drupal to Serverless",
+  "slug": "migration",
+  "date": "2025-05-05",
+  "summary": "A brief technical overview on why this site migrated",
+  "published": true,
+  "content": "\nWarning: the next few paragraphs are technical and will not make sense if you don't know this domain. Feel free to skip!\n\nOurChants.org was originally built in Drupal 7 and hosted on shared infrastructure. The original admin went dark, and all I could recover was a ZIP of the built site—no source code, no deployment pipeline. After running into endless PHP errors trying to revive it, I decided to rebuild it from scratch using a modern, serverless approach.\n\nNow the site is open source and split into two GitHub repos:\n\n- [`ourchants-api`](https://github.com/ford-at-home/ourchants-api) – AWS Lambda functions, API Gateway, and DynamoDB for dynamic content  \n- [`ourchants-website`](https://github.com/ford-at-home/ourchants-website) – React frontend deployed to S3 with Tailwind styling\n\nThe chants themselves aren’t in GitHub—they’re stored in a public S3 bucket and served via pre-signed URLs.\n\nThis new setup is faster, cheaper, easier to maintain, and built for the long haul. No servers. No PHP. Just sacred songs delivered simply and securely.\n"
+}
