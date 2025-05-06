@@ -185,35 +185,34 @@ export function AudioPlayer({
       shouldPlay,
       playerState,
       loadingState,
-      hasAudioRef: !!audioRef.current
+      hasAudioRef: !!safeAudioRef.current
     });
     
-    const audio = new Audio();
+    if (!safeAudioRef.current) return;
+
+    const audio = safeAudioRef.current;
     audio.volume = volume;
     audio.crossOrigin = "anonymous";
-    audioRef.current = audio;
 
     const handleTimeUpdate = () => {
-      const currentAudio = audioRef.current;
-      if (currentAudio) {
-        setCurrentTime(currentAudio.currentTime);
+      if (audio) {
+        setCurrentTime(audio.currentTime);
       }
     };
 
     const handleLoadedMetadata = () => {
-      const currentAudio = audioRef.current;
-      if (currentAudio) {
+      if (audio) {
         console.log('AudioPlayer - Metadata loaded:', {
-          duration: currentAudio.duration,
-          readyState: currentAudio.readyState,
-          networkState: currentAudio.networkState,
-          src: currentAudio.src,
+          duration: audio.duration,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          src: audio.src,
           s3Uri,
           shouldPlay,
           playerState,
           loadingState
         });
-        setDuration(currentAudio.duration);
+        setDuration(audio.duration);
       }
     };
 
@@ -223,8 +222,8 @@ export function AudioPlayer({
         shouldPlay,
         playerState,
         loadingState,
-        hasAudioRef: !!audioRef.current,
-        audioSrc: audioRef.current?.src
+        hasAudioRef: !!audio,
+        audioSrc: audio.src
       });
       setLoadingState({ state: 'loaded' });
     };
@@ -235,8 +234,8 @@ export function AudioPlayer({
         shouldPlay,
         playerState,
         loadingState,
-        hasAudioRef: !!audioRef.current,
-        audioSrc: audioRef.current?.src
+        hasAudioRef: !!audio,
+        audioSrc: audio.src
       });
     };
 
@@ -246,8 +245,8 @@ export function AudioPlayer({
         shouldPlay,
         playerState,
         loadingState,
-        hasAudioRef: !!audioRef.current,
-        audioSrc: audioRef.current?.src
+        hasAudioRef: !!audio,
+        audioSrc: audio.src
       });
     };
 
@@ -264,7 +263,7 @@ export function AudioPlayer({
           shouldPlay,
           playerState,
           loadingState,
-          hasAudioRef: !!audioRef.current,
+          hasAudioRef: !!audio,
           audioSrc: audioElement.src,
           audioError,
           errorMessage
@@ -290,8 +289,8 @@ export function AudioPlayer({
         shouldPlay,
         playerState,
         loadingState,
-        hasAudioRef: !!audioRef.current,
-        audioSrc: audioRef.current?.src
+        hasAudioRef: !!audio,
+        audioSrc: audio.src
       });
       audio.pause();
       audio.src = '';
@@ -306,7 +305,7 @@ export function AudioPlayer({
 
   // Handle S3 URI changes
   useEffect(() => {
-    const currentAudio = audioRef.current;
+    const currentAudio = safeAudioRef.current;
     if (!s3Uri || !currentAudio || s3Uri === prevS3UriRef.current) {
       return;
     }
@@ -314,11 +313,11 @@ export function AudioPlayer({
     console.log('AudioPlayer - S3 URI changed:', {
       s3Uri,
       prevS3Uri: prevS3UriRef.current,
-      hasAudioRef: !!audioRef.current,
+      hasAudioRef: !!currentAudio,
       shouldPlay,
       playerState,
       loadingState,
-      currentAudioSrc: currentAudio.src
+      currentAudioSrc: currentAudio?.src
     });
     
     prevS3UriRef.current = s3Uri;
@@ -354,8 +353,8 @@ export function AudioPlayer({
           shouldPlay,
           playerState,
           loadingState,
-          hasAudioRef: !!audioRef.current,
-          currentAudioSrc: currentAudio.src
+          hasAudioRef: !!currentAudio,
+          currentAudioSrc: currentAudio?.src
         });
 
         try {
@@ -370,8 +369,8 @@ export function AudioPlayer({
             shouldPlay,
             playerState,
             loadingState,
-            hasAudioRef: !!audioRef.current,
-            currentAudioSrc: currentAudio.src
+            hasAudioRef: !!currentAudio,
+            currentAudioSrc: currentAudio?.src
           });
 
           // Set up canplay listener before setting the source
@@ -401,8 +400,8 @@ export function AudioPlayer({
               shouldPlay,
               playerState,
               loadingState,
-              hasAudioRef: !!audioRef.current,
-              currentAudioSrc: currentAudio.src
+              hasAudioRef: !!currentAudio,
+              currentAudioSrc: currentAudio?.src
             });
             currentAudio.currentTime = validatedTimestamp;
           }
@@ -414,8 +413,8 @@ export function AudioPlayer({
                 shouldPlay,
                 playerState,
                 loadingState,
-                hasAudioRef: !!audioRef.current,
-                currentAudioSrc: currentAudio.src
+                hasAudioRef: !!currentAudio,
+                currentAudioSrc: currentAudio?.src
               });
               await currentAudio.play();
               console.log('AudioPlayer - Play successful', {
@@ -423,8 +422,8 @@ export function AudioPlayer({
                 shouldPlay,
                 playerState,
                 loadingState,
-                hasAudioRef: !!audioRef.current,
-                currentAudioSrc: currentAudio.src
+                hasAudioRef: !!currentAudio,
+                currentAudioSrc: currentAudio?.src
               });
               setPlayerState('playing');
             } catch (err) {
@@ -434,8 +433,8 @@ export function AudioPlayer({
                 shouldPlay,
                 playerState,
                 loadingState,
-                hasAudioRef: !!audioRef.current,
-                currentAudioSrc: currentAudio.src
+                hasAudioRef: !!currentAudio,
+                currentAudioSrc: currentAudio?.src
               });
               if (err instanceof Error && err.name === 'NotAllowedError') {
                 setPlayerState('idle');
@@ -453,8 +452,8 @@ export function AudioPlayer({
             shouldPlay,
             playerState,
             loadingState,
-            hasAudioRef: !!audioRef.current,
-            currentAudioSrc: currentAudio.src
+            hasAudioRef: !!currentAudio,
+            currentAudioSrc: currentAudio?.src
           });
           const errorMessage = err instanceof Error ? err.message : 'Failed to access audio file';
           setError(`Access error: ${errorMessage}`);
@@ -469,8 +468,8 @@ export function AudioPlayer({
           shouldPlay,
           playerState,
           loadingState,
-          hasAudioRef: !!audioRef.current,
-          currentAudioSrc: currentAudio.src
+          hasAudioRef: !!currentAudio,
+          currentAudioSrc: currentAudio?.src
         });
         const errorMessage = err instanceof Error ? err.message : 'Failed to load audio';
         setError(errorMessage);
@@ -498,7 +497,7 @@ export function AudioPlayer({
         return;
       }
 
-      const currentAudio = audioRef.current;
+      const currentAudio = safeAudioRef.current;
       if (!currentAudio) {
         console.error('AudioPlayer - No audio element available');
         return;
@@ -528,14 +527,14 @@ export function AudioPlayer({
   }
 
   const handleTimeChange = (value: number[]) => {
-    const audioElement = audioRef.current;
+    const audioElement = safeAudioRef.current;
     if (!audioElement) return;
     console.log('Seeking to:', value[0]);
     audioElement.currentTime = value[0];
   };
 
   const handleVolumeChange = (value: number[]) => {
-    const audioElement = audioRef.current;
+    const audioElement = safeAudioRef.current;
     if (!audioElement) return;
     console.log('Setting volume to:', value[0]);
     audioElement.volume = value[0] / 100;
@@ -554,7 +553,7 @@ export function AudioPlayer({
   };
 
   const handleRetry = () => {
-    const audioElement = audioRef.current;
+    const audioElement = safeAudioRef.current;
     if (!audioElement) return;
     
     // Reset all error states
